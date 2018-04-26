@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <title>Floodlight OpenFlow Controller - Routes</title>
+
+    <!--<style>-->
+    <!--form {-->
+    <!--display: inline-block;-->
+    <!--}-->
+    <!--</style>-->
+
+    <!-- Bootstrap Core CSS -->
+    <link href="../bower_components/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- MetisMenu CSS -->
+    <link href="../bower_components/metisMenu/dist/metisMenu.min.css" rel="stylesheet">
+    <!-- DataTables CSS -->
+    <link href="../bower_components/datatables-plugins/integration/bootstrap/3/dataTables.bootstrap.css"
+          rel="stylesheet">
+    <!-- DataTables Responsive CSS -->
+    <link href="../bower_components/datatables-responsive/css/dataTables.responsive.css" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link href="../dist/css/sb-admin-2.css" rel="stylesheet">
+    <!-- Custom Fonts -->
+    <link href="../bower_components/font-awesome/css/font-awesome.min.css" rel="stylesheet" type="text/css">
+    <link href="https://cdn.datatables.net/1.10.11/css/jquery.dataTables.min.css" rel="stylesheet" type="text/css">
+    <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+    <!--[if lt IE 9]>
+    <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+    <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
+    <![endif]-->
+</head>
+<body>
+<div id="wrapper">
+    <!-- Navigation -->
+    <nav class="navbar navbar-default navbar-static-top" role="navigation" style="margin-bottom: 0">
+        <div class="navbar-header">
+            <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+            <a class="navbar-brand" href="index.html" id="home-button-title">Floodlight OpenFlow Controller </a>
+        </div>
+        <!-- /.navbar-header -->
+        <!-- /.navbar-top-links -->
+        <div class="navbar-default sidebar" role="navigation">
+            <div class="sidebar-nav navbar-collapse">
+                <nav id="navMenu"></nav>
+            </div>
+            <!-- /.sidebar-collapse -->
+        </div>
+        <!-- /.navbar-static-side -->
+    </nav>
+    <div id="page-wrapper">
+        <div class="row">
+            <div class="col-lg-12">
+                <h3 class="page-header">Routes</h3>
+            </div>
+            <!-- /.col-lg-12 -->
+        </div>
+        <!-- /.row -->
+        <div class="row">
+            <div class="col-lg-6">
+                <div class="panel panel-primary">
+                    <div class="panel-heading">
+                        Routes between switches
+                    </div>
+                    <!-- /.panel-heading -->
+                    <div class="panel-body">
+
+                        <div class="dataTable_wrapper">
+                            <form name="sourceForm">
+                                <div class="form-inline">
+                                    <select name="Switch" id="sourceSwitchDropdown" class="form-control">
+                                        <option>Switch</option>
+                                    </select>
+
+                                    <select name="Switch" id="destinationSwitchDropdown" class="form-control">
+                                        <option>Switch</option>
+                                    </select>
+                                </div>
+
+
+                                <div class="form-inline">
+                                    <input placeholder="Number of Routes" type="text" name="NumRoutes"
+                                           id="numberOfRoutesInput" class="form-control">
+                                    </input>
+
+
+
+                                <button type="reset" class="btn btn-primary" onclick="getRoutesBetweenSwitches()">Get
+                                    Routes
+                                </button>
+                                </div>
+
+                                <table class="table table-striped table-bordered table-hover" id="tableRoutes"
+                                       width="100%">
+                                    <thead>
+                                    <tr>
+                                        <th>Route #</th>
+                                        <th>Hop Count</th>
+                                        <th>Latency (ms)</th>
+                                        <th>Path</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody></tbody>
+                                </table>
+                                <div class="form-inline">
+                                    <button type="reset" class="btn btn-success" id="hopcountButton"
+                                            onclick="setMetricToHopCount()">Hop Count
+                                    </button>
+                                    <button type="reset" class="btn btn-default" id="latencyButton" onclick="setMetricToLatency()">
+                                        Latency
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                        <!-- /.table-responsive -->
+                    </div>
+                    <!-- /.panel-body -->
+                    <!--<div class="form-inline">-->
+                        <!--<button type="reset" class="btn btn-success" id="hopcountButton"-->
+                                <!--onclick="setMetricToHopCount()">Hop Count-->
+                        <!--</button>-->
+                        <!--<button type="reset" class="btn btn-default" id="latencyButton" onclick="setMetricToLatency()">-->
+                            <!--Latency-->
+                        <!--</button>-->
+                    <!--</div>-->
+                </div>
+                <!-- /.panel -->
+
+
+            </div>
+            <div class="col-lg-6" id="network">
+                <h3 class="page-header">Network</h3>
+            </div>
+        </div>
+        <div class="row">
+            <!-- /.col-lg-8 -->
+            <div class="col-lg-6">
+                <div class="panel panel-primary">
+                    <div class="panel-heading">
+                        Path Detail
+                    </div>
+                    <!-- /.panel-heading -->
+                    <div class="panel-body">
+                        <div class="dataTable_wrapper">
+                            <table class="table table-striped table-bordered table-hover" id="pathTable" width="100%">
+                                <thead>
+                                <tr>
+                                    <th>Switch ID</th>
+                                    <th>Port</th>
+                                    <!--<th></th>-->
+                                </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                        <!-- /.table-responsive -->
+                    </div>
+                    <!-- /.panel-body -->
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="login-modal-include"></div>
+
+    <!-- /.row -->
+
+    <!-- /.row -->
+    <!--<div class="row">-->
+    <!--&lt;!&ndash;<div class="col-lg-12" id="network">&ndash;&gt;-->
+    <!--&lt;!&ndash;<h3 class="page-header">Network</h3>&ndash;&gt;-->
+    <!--&lt;!&ndash;</div>&ndash;&gt;-->
+    <!--&lt;!&ndash; /.col-lg-12 &ndash;&gt;-->
+    <!--</div>-->
+    <!-- /.row -->
+</div>
+
+<!--/#page-wrapper -->
+
+</div>
+<!-- /#wrapper -->
+<!-- jQuery -->
+<script src="../bower_components/jquery/dist/jquery.min.js"></script>
+<!-- Bootstrap Core JavaScript -->
+<script src="../bower_components/bootstrap/dist/js/bootstrap.min.js"></script>
+<!-- Metis Menu Plugin JavaScript -->
+<script src="../bower_components/metisMenu/dist/metisMenu.min.js"></script>
+<!-- DataTables JavaScript -->
+<script src="../bower_components/datatables/media/js/jquery.dataTables.min.js"></script>
+<script src="../bower_components/datatables-plugins/integration/bootstrap/3/dataTables.bootstrap.min.js"></script>
+<!-- Custom Theme JavaScript -->
+<script src="../dist/js/sb-admin-2.js"></script>
+<script src="../js/jquery.cookie.js"></script>
+
+<script src="../bower_components/visjs/vis.js"></script>
+<script src="../bower_components/visjs/googleAnalytics.js"></script>
+
+<!-- Page-Level Demo Scripts - Tables - Use for reference -->
+<script src="../js/querystringparser.js"></script>
+
+<!-- Custom scripts to load in HTML -->
+<script src="../js/navbar.js"></script>
+<script>
+    $(function () {
+        $("#login-modal-include").load("loginmodal.html");
+    });
+</script>
+
+<script>
+    /*
+     * These cookies are set on the login page at login.html.
+     * They are simply the IP address of your controller and the REST api port.
+     * */
+    var ipaddress = $.cookie('cip');
+    if (ipaddress == null || ipaddress == "") window.location.href = "login.html";
+    var restport = $.cookie('cport');
+    if (restport == null || restport == "") window.location.href = "login.html";
+
+    var routeTable;
+    var pathTable;
+
+    function setMetricToHopCount() {
+        document.getElementById("hopcountButton").className = "btn btn-success";
+        document.getElementById("latencyButton").className = "btn btn-default";
+        $.ajax({
+            type: "POST",
+            dataType: 'json',
+            url: " http://" + ipaddress + ":" + restport + "/wm/topology/setroutemetric/hopcount/json",
+        });
+    }
+
+    function setMetricToLatency() {
+        document.getElementById("latencyButton").className = "btn btn-success";
+        document.getElementById("hopcountButton").className = "btn btn-default";
+        $.ajax({
+            type: "POST",
+            dataType: 'json',
+            url: " http://" + ipaddress + ":" + restport + "/wm/topology/setroutemetric/latency/json",
+        });
+    }
+
+    function getRoutesBetweenSwitches() {
+        var s = document.getElementById("sourceSwitchDropdown");
+        var d = document.getElementById("destinationSwitchDropdown");
+        var n = document.getElementById("numberOfRoutesInput");
+
+        var src = String(s.options[s.selectedIndex].value);
+        var dst = String(d.options[d.selectedIndex].value);
+        var num = String(n.value);
+
+        if (src == -1 || dst == -1) {
+            alert("Source and destination must both be chosen!");
+            return;
+        }
+
+        routeTable.clear();
+        console.log('tableRoutes load attempt');
+        routeTable.ajax.url("http://" + ipaddress + ":" + restport +
+                "/wm/topology/routes/" + src + "/" + dst + "/" + num + "/json").load();
+        console.log('tableRoutes post load attempt');
+
+
+        $('#tableRoutes tbody').on('click', 'tr', function () {
+            console.log('Color and fill path');
+            var data = routeTable.row(this).data();
+            console.log(data);
+
+            pathTable.clear();
+            pathTable.rows.add(data.path).draw();
+
+            colorLinks(data.path);
+
+        });
+
+        $('#pathTable').find('tbody').on('click', 'tr', function () {
+            var data = pathTable.row(this).data();
+            console.log(data);
+        });
+    }
+
+    /*
+     When the page is loaded, initialize the datatables so that they can be called later and refreshed.
+     */
+    $().ready(function () {
+        console.log('load tableRoutes');
+        routeTable = $('#tableRoutes').DataTable({
+            responsive: true,
+            "paging": false,
+            "ordering": false,
+            "info": false,
+            "searching": false,
+            lengthChange: false,
+            ajax: {
+                url: "http://" + ipaddress + ":" + restport + "/wm/core/health/json",
+                dataSrc: ''
+            },
+            "columnDefs": [
+                {
+                    "targets": [3],
+                    "visible": false,
+                    "searchable": false
+                }
+            ],
+            columns: [
+                {data: 'route_count'},
+                {data: 'hop_count'},
+                {data: 'latency'},
+                {data: 'path'}
+            ]
+        });
+        console.log('load pathTable');
+        pathTable = $('#pathTable').DataTable({
+            data: '',
+            "paging": false,
+            "ordering": false,
+            "info": false,
+            "responsive": true,
+            "searching": false,
+            lengthChange: false,
+            "columnDefs": [
+                {
+                    "targets": [0],
+                    "orderable": false,
+                    "searchable": false
+                },
+                {
+                    "targets": [1],
+                    "orderable": false,
+                    "searchable": false
+                }
+            ],
+            columns: [
+                {data: 'dpid'},
+                {data: 'port'}
+            ]
+        });
+    });
+
+    /*
+     When the page is loaded, query the controller for the switches and populate the drop down lists with
+     these values. The user will then choose a source and destination from these lists.
+     */
+    $().ready(function () {
+        console.log('load switches');
+        $.ajax({
+            url: "http://" + ipaddress + ":" + restport + "/wm/core/controller/switches/json",
+            success: function (data) {
+                $("#sourceSwitchDropdown").get(0).options.length = 0;
+                $("#sourceSwitchDropdown").get(0).options[0] = new Option("Select Source Switch", "-1");
+                $("#destinationSwitchDropdown").get(0).options.length = 0;
+                $("#destinationSwitchDropdown").get(0).options[0] = new Option("Select Destination Switch", "-1");
+
+                $.each(data, function (index, item) {
+                    $("#sourceSwitchDropdown").get(0).options[$("#sourceSwitchDropdown").get(0).options.length] = new Option(item.switchDPID, item.switchDPID);
+                    $("#destinationSwitchDropdown").get(0).options[$("#destinationSwitchDropdown").get(0).options.length] = new Option(item.switchDPID, item.switchDPID);
+                });
+            },
+            error: function () {
+                alert("Failed to load switches");
+            }
+        });
+    });
+
+
+</script>
+
+<script type="text/javascript">
+
+    var ipaddress = $.cookie('cip');
+    if (ipaddress == null || ipaddress == "") window.location.href = "login.html";
+    var restport = $.cookie('cport');
+    if (restport == null || restport == "") window.location.href = "login.html";
+
+
+    var nodes = null;
+    var edges = null;
+    var edges_copy = null;
+    var network = null;
+
+    var DIR = '../bower_components/visjs/img/refresh-cl/';
+    var EDGE_LENGTH_MAIN = 50;
+    var EDGE_LENGTH_SUB = 50;
+
+    // Called when the Visualization API is loaded.
+    function draw() {
+
+
+//        nodes.push({id: 1, label: 'Main', image: DIR + 'Network-Pipe-icon.png', shape: 'image'});
+//        nodes.push({id: 2, label: 'Office', image: DIR + 'Network-Pipe-icon.png', shape: 'image'});
+//        nodes.push({id: 3, label: 'Wireless', image: DIR + 'Network-Pipe-icon.png', shape: 'image'});
+//        edges.push({from: 1, to: 2, length: EDGE_LENGTH_MAIN});
+//        edges.push({from: 1, to: 3, length: EDGE_LENGTH_MAIN});
+//
+//        for (var i = 4; i <= 7; i++) {
+//          nodes.push({id: i, label: 'Computer', image: DIR + 'Hardware-My-Computer-3-icon.png', shape: 'image'});
+//          edges.push({from: 2, to: i, length: EDGE_LENGTH_SUB});
+//        }
+//
+//        nodes.push({id: 101, label: 'Printer', image: DIR + 'Hardware-Printer-Blue-icon.png', shape: 'image'});
+//        edges.push({from: 2, to: 101, length: EDGE_LENGTH_SUB});
+//
+//        nodes.push({id: 102, label: 'Laptop', image: DIR + 'Hardware-Laptop-1-icon.png', shape: 'image'});
+//        edges.push({from: 3, to: 102, length: EDGE_LENGTH_SUB});
+//
+//        nodes.push({id: 103, label: 'network drive', image: DIR + 'Network-Drive-icon.png', shape: 'image'});
+//        edges.push({from: 1, to: 103, length: EDGE_LENGTH_SUB});
+//
+//        nodes.push({id: 104, label: 'Internet', image: DIR + 'System-Firewall-2-icon.png', shape: 'image'});
+//        edges.push({from: 1, to: 104, length: EDGE_LENGTH_SUB});
+//
+//        for (var i = 200; i <= 201; i++ ) {
+//          nodes.push({id: i, label: 'Smartphone', image: DIR + 'Hardware-My-PDA-02-icon.png', shape: 'image'});
+//          edges.push({from: 3, to: i, length: EDGE_LENGTH_SUB});
+//        }
+
+        // create a network
+        var container = document.getElementById('network');
+        var data = {
+            nodes: nodes,
+            edges: edges
+        };
+        var options = {
+            autoResize: true,
+            height: '600px',
+            width: '100%',
+            layout: {
+                randomSeed: 1000,
+                improvedLayout: true
+            }
+        };
+        network = new vis.Network(container, data, options);
+        network.on("showPopup", function (params) {
+            if (params.charAt(0) == 's') {
+                var id = params.substring(1);
+                network["body"]["nodes"][params]["options"]["title"] = parseFlows(id);
+            }
+        });
+
+    }
+
+    function resetNetwork() {
+        edges = [];
+        edges = $.extend(true, [], edges_copy);
+    }
+
+    function colorLinks(path) {
+        resetNetwork();
+        var links = network["body"]["data"]["edges"]["_data"];
+        for (var i = 0; i <= path.length - 2; i = i + 2) {
+            //console.log(path[i] + "    " + path[i+1]);
+            //Object.keys(links).forEach(function (key, index) {
+            for (var j = 0; j < edges.length; j++) {
+//                var npts = links[key].title.split("<br>");
+                var npts = edges[j].title.split("<br>");
+                var npt1 = npts[0].split("/");
+                var npt2 = npts[1].split("/");
+                //console.log(npt1 + "    " + npt2);
+                if (path[i].dpid == npt1[0] &&
+                        path[i + 1].dpid == npt2[0] &&
+                        path[i].port == npt1[1] &&
+                        path[i + 1].port == npt2[1] ||
+                        path[i].dpid == npt2[0] &&
+                        path[i + 1].dpid == npt1[0] &&
+                        path[i].port == npt2[1] &&
+                        path[i + 1].port == npt1[1]) {
+                    edges[j].color = 'blue';
+                    edges[j].width = 7;
+
+                }
+            }
+            //);
+        }
+        console.log(network);
+        console.log("Edges: " + edges);
+        draw();
+
+
+    }
+
+
+</script>
+
+
+<script>
+    // Create a data table with nodes.
+    nodes = [];
+
+    // Create a data table with links.
+    edges = [];
+
+
+    LoadSwitches();
+
+
+    function LoadExternalLinks(hosts) {  ///LİNKLER
+
+        var url = "http://" + ipaddress + ":" + restport + "/wm/topology/external-links/json";
+
+        $.ajax({
+            url: url,
+            success: function (data) {
+                for (var i = 0; i < data.length; i++) {
+                    edges.push({
+                        from: "s" + data[i]["src-switch"],
+                        to: "s" + data[i]["dst-switch"],
+                        length: EDGE_LENGTH_MAIN,
+                        title: data[i]["src-switch"] + "/" + data[i]["src-port"] + "<br>" + data[i]["dst-switch"] + "/" + data[i]["dst-port"],
+                        color: 'red',
+                        width: 4
+                    });
+                }
+
+                for (var i = 0; i < hosts.length; i++) {
+                    if (hosts[i]["attachmentPoint"].length > 0) {
+                        if (hosts[i].hasOwnProperty("trueAttachmentPoint") && hosts[i]["trueAttachmentPoint"][0] != null) {
+                            edges.push({
+                                from: "h" + hosts[i]["mac"]
+                                , to: "s" + hosts[i]["trueAttachmentPoint"][0].switchDPID, length: EDGE_LENGTH_MAIN,
+                                title: hosts[i]["trueAttachmentPoint"][0].switchDPID + "/" + hosts[i]["trueAttachmentPoint"][0].port,
+                                color: 'green',
+                                width: 2
+                            });
+                        }
+                        else {
+                            edges.push({
+                                from: "h" + hosts[i]["mac"]
+                                , to: "s" + hosts[i]["attachmentPoint"][0].switchDPID, length: EDGE_LENGTH_MAIN,
+                                title: hosts[i]["attachmentPoint"][0].switchDPID + "/" + hosts[i]["attachmentPoint"][0].port,
+                                color: 'green',
+                                width: 2
+                            });
+                        }
+                    }
+                }
+
+                LoadInternalLinks();
+                //draw();
+            },
+            error: function (jqXHR, textStatus, errorThrown) {
+                console.log(jqXHR.responseText);
+                alert('Error: ' + " " + jqXHR.responseText + " \n Status: " + textStatus + " \n Error Thrown: " +
+                        errorThrown);
+            }
+        });
+    }
+
+    function LoadInternalLinks(hosts) {  ///LİNKLER
+
+
+        $.ajax({
+            url: "http://" + ipaddress + ":" + restport + "/wm/topology/links/json",
+            success: function (data) {
+                for (var i = 0; i < data.length; i++) {
+                    edges.push({
+                        from: "s" + data[i]["src-switch"], to: "s" + data[i]["dst-switch"], length: EDGE_LENGTH_MAIN,
+                        title: data[i]["src-switch"] + "/" + data[i]["src-port"] + "<br>" + data[i]["dst-switch"] + "/" + data[i]["dst-port"],
+                        width: 3,
+                        color: 'black'
+                    });
+                }
+                edges_copy = $.extend(true, [], edges);
+                draw();
+                //LoadExternalLinks(hosts);
+            },
+            error: function (jqXHR, textStatus, errorThrown) {
+                alert('Error: ' + " " + jqXHR.responseText + " \n Status: " + textStatus + " \n Error Thrown: " +
+                        errorThrown);
+            }
+        });
+    }
+
+    function parseFlows(id) {
+        var flowString = "";
+        $.ajax({
+            url: "http://" + ipaddress + ":" + restport + "/wm/core/switch/" + id + "/flow/json",
+            async: false,
+            success: function (flowobject) {
+                for (var i = 0; i < flowobject["flows"].length; i++) {
+                    flowString += "Flow " + i + ":";
+                    flowString += "<br>&nbsp;&nbsp;&nbsp;Packet count: " + JSON.stringify(flowobject["flows"][i]["packet_count"]);
+                    flowString += "<br>&nbsp;&nbsp;&nbsp;Matches: " + JSON.stringify(flowobject["flows"][i]["match"]);
+                    if (flowobject["flows"][i]["version"] == "OF_13") {
+                        flowString += "<br>&nbsp;&nbsp;&nbsp;Actions: " + JSON.stringify(flowobject["flows"][i]["instructions"]["instruction_apply_actions"]["actions"]);
+                    }
+                    if (flowobject["flows"][i]["version"] == "OF_10") {
+                        flowString += "<br>&nbsp;&nbsp;&nbsp;Actions: " + JSON.stringify(flowobject["flows"][i]["actions"]["actions"]);
+                    }
+                    flowString += "<br>";
+                }
+            }
+        });
+        return flowString;
+    }
+
+
+    function LoadSwitches() {
+
+        var url = "http://" + ipaddress + ":" + restport + "/wm/core/controller/switches/json";
+
+        $.ajax({
+            url: url,
+            success: function (data) {
+
+                for (var i = 0; i < data.length; i++) {
+                    var id = "s" + data[i]["switchDPID"];
+                    var label = "s" + data[i]["switchDPID"];
+                    nodes.push({
+                        id: id,
+                        label: label,
+                        image: DIR + 'switch.png',
+                        shape: 'image',
+                        title: parseFlows(data[i]["switchDPID"])
+                    });
+                }
+                LoadHosts();
+            },
+            error: function (jqXHR, textStatus, errorThrown) {
+                alert('Error: ' + " " + jqXHR.responseText + " \n Status: " + textStatus + " \n Error Thrown: " +
+                        errorThrown);
+            }
+        });
+    }
+
+    function LoadHosts() {
+        var url = "http://" + ipaddress + ":" + restport + "/wm/device/";
+
+        $.ajax({
+            url: url,
+            success: function (hosts) {
+                for (var i = 0; i < hosts.length; i++) {
+
+                    if (hosts[i]["attachmentPoint"].length > 0) {
+                        var id = "h" + hosts[i]["mac"];
+                        var label = "h" + hosts[i]["ipv4"];
+                        nodes.push({
+                            id: id,
+                            label: label,
+                            image: DIR + 'Hardware-My-Computer-3-icon.png',
+                            shape: 'image',
+                            title: hosts[i]["mac"]
+                        });
+                    }
+                }
+                LoadExternalLinks(hosts);
+            },
+            error: function (jqXHR, textStatus, errorThrown) {
+                console.log(jqXHR.responseText);
+                alert('Error: ' + " " + jqXHR.responseText + " \n Status: " + textStatus + " \n Error Thrown: " +
+                        errorThrown);
+            }
+        });
+
+    }
+
+
+</script>
+
+</body>
+</html>
