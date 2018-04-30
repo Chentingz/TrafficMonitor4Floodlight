@@ -49,17 +49,22 @@ import net.floodlightcontroller.core.module.FloodlightModuleException;
 import net.floodlightcontroller.core.module.IFloodlightModule;
 import net.floodlightcontroller.core.module.IFloodlightService;
 import net.floodlightcontroller.core.types.NodePortTuple;
+import net.floodlightcontroller.restserver.IRestApiService;
 import net.floodlightcontroller.threadpool.IThreadPoolService;
+import net.floodlightcontroller.trafficmonitor.web.TrafficMonitorWebRoutable;
 
 
 
-public class TrafficMonitor implements IOFMessageListener, IFloodlightModule {
+public class TrafficMonitor implements IOFMessageListener, IFloodlightModule, ITrafficMonitorService {
 	
 	protected static final Logger logger = LoggerFactory.getLogger(TrafficMonitor.class);
 	
 	private IFloodlightProviderService 	floodlightProvider;
 	private IOFSwitchService 			switchService;
 	private IThreadPoolService 			threadPoolService;		// 线程池
+	protected IRestApiService			restApiService;
+	
+	
 	
 	private static final long portStatsInterval = 10;			// 收集交换机端口统计量的周期,单位为秒
 	private static ScheduledFuture<?> portStatsCollector;		// 用于接收线程池的返回值，收集port_stats
@@ -110,17 +115,18 @@ public class TrafficMonitor implements IOFMessageListener, IFloodlightModule {
 					}					
 				}
 				
-				/* 打印端口统计信息 */
+				/* 打印端口统计信息 
 				logger.info("ready to print stats");
 				for(Entry<NodePortTuple, SwitchPortStatistics> e : portStatsBuffer.entrySet()){
 					e.getValue().printPortStatistics();
 				}
-
+				*/
 				
 				/* 更新prePortStatsBuffer */
 				prePortStatsBuffer.clear();
 				prePortStatsBuffer.putAll(portStatsBuffer);
 				portStatsBuffer.clear();
+				logger.info("prePortStatsBuffer updated");
 			}
 		
 		}
@@ -366,16 +372,27 @@ public class TrafficMonitor implements IOFMessageListener, IFloodlightModule {
 		return false;
 	}
 
+
 	@Override
 	public Collection<Class<? extends IFloodlightService>> getModuleServices() {
 		// TODO Auto-generated method stub
-		return null;
+		Collection<Class<? extends IFloodlightService>> l = new
+				ArrayList<Class<? extends IFloodlightService>>();
+				l.add(ITrafficMonitorService.class);
+				return l;
 	}
-
+	
+	/**
+	 * tells the module system that we are the class that provides the service
+	 * 告诉模块系统TrafficMonitor类提供ITrafficMonitorService服务
+	 */
 	@Override
 	public Map<Class<? extends IFloodlightService>, IFloodlightService> getServiceImpls() {
 		// TODO Auto-generated method stub
-		return null;
+		Map<Class<? extends IFloodlightService>, IFloodlightService> m = new
+				HashMap<Class<? extends IFloodlightService>, IFloodlightService>();
+				m.put(ITrafficMonitorService.class, this);
+				return m;
 	}
 
 	
@@ -390,6 +407,7 @@ public class TrafficMonitor implements IOFMessageListener, IFloodlightModule {
 			    l.add(IFloodlightProviderService.class);
 			    l.add(IOFSwitchService.class);
 			    l.add(IThreadPoolService.class);
+			    l.add(IRestApiService.class);
 			    return l;
 	}
 
@@ -403,6 +421,8 @@ public class TrafficMonitor implements IOFMessageListener, IFloodlightModule {
 		floodlightProvider = context.getServiceImpl(IFloodlightProviderService.class);
 		switchService = context.getServiceImpl(IOFSwitchService.class);
 		threadPoolService = context.getServiceImpl(IThreadPoolService.class);
+		restApiService = context.getServiceImpl(IRestApiService.class);
+		
 		prePortStatsBuffer = new HashMap<NodePortTuple, SwitchPortStatistics>();
 		portStatsBuffer = new HashMap<NodePortTuple, SwitchPortStatistics>();
 		
@@ -414,9 +434,12 @@ public class TrafficMonitor implements IOFMessageListener, IFloodlightModule {
 	 */
 	@Override
 	public void startUp(FloodlightModuleContext context){
+		/* 设置请求url */
+		restApiService.addRestletRoutable(new TrafficMonitorWebRoutable());
+		
 		/* 收集交换机端口统计信息并计算port_speed */
 		startPortStatsCollection();
-	
+		
 		/* 收集流表项统计信息并计算flow_speed */
 	//	startFlowStatsCollection();
 
@@ -433,7 +456,20 @@ public class TrafficMonitor implements IOFMessageListener, IFloodlightModule {
 	}
 	
 	
+	/*
+	 * ITrafficMonitorService 实现
+	 */
+	@Override
+	public HashMap<NodePortTuple, SwitchPortStatistics> getPortStatistics() {
+		// TODO Auto-generated method stub
+		return prePortStatsBuffer;
+	}	
 	
+	@Override
+	public SwitchPortStatistics getPortStatistics(DatapathId dpid, OFPort port) {
+		// TODO Auto-generated method stub
+		return prePortStatsBuffer.get(new NodePortTuple(dpid, port));
+	}
 	
 
 	
@@ -554,6 +590,10 @@ public class TrafficMonitor implements IOFMessageListener, IFloodlightModule {
 		
 		return switchSet;
 		
-	}	
+	}
+
+
+
+
 }
 

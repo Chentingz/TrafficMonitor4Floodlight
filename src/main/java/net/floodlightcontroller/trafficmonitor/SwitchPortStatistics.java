@@ -6,6 +6,10 @@ import org.projectfloodlight.openflow.types.DatapathId;
 import org.projectfloodlight.openflow.types.OFPort;
 import org.projectfloodlight.openflow.types.U64;
 
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import net.floodlightcontroller.trafficmonitor.web.SwitchPortStatisticsSerializer;
+
+@JsonSerialize(using=SwitchPortStatisticsSerializer.class)
 public class SwitchPortStatistics {
 	private DatapathId 	dpid;
 	private OFPort		portNo;
@@ -27,7 +31,13 @@ public class SwitchPortStatistics {
 	private U64			txDropped;
 	
 	public SwitchPortStatistics(){ 
+		dpid = DatapathId.NONE;
+		portNo = null;
+		rxSpeed = txSpeed = linkBandwidth = U64.ZERO;
 		updateTime = new Date();
+		rxBytes = txBytes = U64.ZERO;
+		durationSec = durationNsec = 0;
+		rxPackets = txPackets = rxDropped = txDropped = U64.ZERO;
 	}
 	
 	public void setDpid(DatapathId dpid) {
