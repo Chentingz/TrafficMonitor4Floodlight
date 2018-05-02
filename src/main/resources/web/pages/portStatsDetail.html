@@ -80,9 +80,16 @@
         <!-- /.row -->
         <div class="row">
             <div class="col-lg-12">
+            
+             <!-- 图表容器 DOM -->
+            <div id="container" style="width:800px;height:400px"></div>
+                  
+            
+            
+            
                 <div class="panel panel-primary">
                     <div class="panel-heading">
-                        Switchs Connected
+                        Traffic Monitor
                     </div>
                     <!-- /.panel-heading -->
                     <div class="panel-body">
@@ -93,8 +100,7 @@
                                 <thead>
                                 <tr>
                                     <th>Switch ID</th>
-                                    <th>Port NO</th>     
-                                    <th></th>                 
+                                    <th>Port NO</th>                       
                                 </tr>
                                 </thead>
                                 <tbody></tbody>
@@ -130,6 +136,9 @@
 <script src="../bower_components/datatables/media/js/jquery.dataTables.min.js"></script>
 <script src="../bower_components/datatables-plugins/integration/bootstrap/3/dataTables.bootstrap.min.js"></script>
 
+<!-- HighChart JavaScript -->
+<script src="../bower_components/highcharts/highcharts.js"></script>
+
 <!-- Custom Theme JavaScript -->
 <script src="../dist/js/sb-admin-2.js"></script>
 
@@ -152,7 +161,6 @@
 </script>
 
 <script>
-
     /*
      * These cookies are set on the login page at login.html.
      * They are simply the IP address of your controller and the REST api port.
@@ -162,56 +170,106 @@
     var restport = $.cookie('cport');
     if (restport == null || restport == "") window.location.href = "login.html";
 
-     /*
-     *  读取交换机dpid和端口号，并打印到表格上
-     *	
-     * */
-    $(document).ready(function () {
-        loadSwitchesAndPorts();
-        startRefresh();
-    });
-    
-    /*
-     * Refreshes all of the values on the page every fifteen seconds.
-     * */
-    function startRefresh() {
-        setTimeout(startRefresh, 15000);
 
-        switchPortTable.ajax.reload();
-    }
-    
-     /*
-     * 获取交换机dpid和端口号的函数
-     * */
-    function loadSwitchesAndPorts() {
-        switchPortTable = $('#tableSwitchesPorts').DataTable({
-            responsive: true,
-            searching: false,
-            lengthChange: false,
-            scrollX: true,
-            paging: false,
-            order: [[0, 'asc']],
-            ajax: {
-                url: "http://" + ipaddress + ":" + restport + "/wm/trafficmonitor/portstats/all/all/json",
-                dataSrc: ''
-            },
-            columnDef:[
-            	{
-                    "render": function (data, type, row) {
-						return "<a href="portStatsDetail.html>details</a>";
-                    },
-                    "targets": 2
-                }
-            ],
-            columns: [
-                {data: 'switch.dpid'},
-                {data: 'switch.port_no'}
-                {data: null}
-            ]
-        });
-    }
-     
-     
+	function activeLastPointToolip(chart) {
+    var points = chart.series[0].points;
+    chart.tooltip.refresh(points[points.length -1]);
+	}
+
+
+	$(document).ready(function(){
+		loadChart();
+	});
+	
+	
+	// 设置图标属性
+	function loadChart(){
+			$('#container').highcharts({
+		    chart: {
+		        type: 'spline',				// 曲线图
+		        animation: 'false',
+		        marginRight: 10,
+		        events: {
+		        	load : requestPortStats // 图表加载完毕后执行的回调函数
+		        }		       
+		    },
+		    credits:{
+			     enabled: false 			// 禁用版权信息
+			},
+		    title: {
+		        text: 'dpid + port live traffic'	//根据dpid和端口号打印标题，标题为dpid + port的实时流量
+		    },
+		    xAxis: {
+		    	title:{
+		    		text:'time'
+		    	},
+		        type: 'datetime',
+		        tickPixelInterval: 150
+		    },
+		    yAxis: {
+		        title: {
+		            text: 'Bps'
+		        },
+		        plotLines: [{
+		            value: 0,
+		            width: 1,
+		            color: '#808080'
+		        }]
+		    },		     
+		    tooltip: {					//数据提示框
+
+		    },
+		    legend: {					// 图例
+		        enabled: true
+		    },
+		    exporting: {
+		        enabled: false
+		    },
+		    series: [{					// 数据列
+		        name: 'in',
+		        data: []
+		    }, {
+		    	name: 'out',
+		    	data: []
+		    
+		    }]
+		});
+	}
+	
+	function requestPortStats(){
+		$.ajax({
+			// url的dpid和port用参数传递过来
+		    url: "http://" + ipaddress + ":" + restport + "/wm/trafficmonitor/portstats/00:00:00:00:00:00:00:01/1/json",
+		    success: function(data) { // 接口调用成功回调函数
+		        // data 为服务器返回的数据
+				if(data)
+		        {
+			        var chart = $('#container').highcharts();
+			        shift = chart.series[0].data.length > 20; 	// 当数据点数量超过 20 个，则指定删除第一个点
+
+			      var rx_speed = parseInt(data[0].port_stats["rx_speed(Bps)"]);
+			      var tx_speed = parseInt(data[0].port_stats["tx_speed(Bps)"]);
+			      
+			      // 新增点操作
+			      //具体的参数详见：https://api.hcharts.cn/highcharts#Series.addPoint
+			      chart.series[0].addPoint(rx_speed, true, shift);
+			      chart.series[1].addPoint(tx_speed, true, shift);
+				}
+				
+		      // 一秒后继续调用本函数
+		      setTimeout(requestPortStats, 1000);
+		      
+		    }
+		    ,
+            error: function (jqXHR, textStatus, errorThrown) {
+                alert('Error: ' + " " + jqXHR.responseText + " \n Status: " + textStatus + " \n Error Thrown: " + errorThrown);
+            }
+	        ,
+		    cache: false
+		});
+	}
+	
+	     
 </script>
 
 </body>

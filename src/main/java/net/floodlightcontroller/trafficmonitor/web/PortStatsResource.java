@@ -1,5 +1,6 @@
 package net.floodlightcontroller.trafficmonitor.web;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -37,14 +38,35 @@ public class PortStatsResource extends ServerResource {
 	    String port_str = (String) getRequestAttributes().get(TrafficMonitorWebRoutable.PORT_STR);
 		
 	    
-	    /* 根据字符串转换 */
-		DatapathId dpid = DatapathId.of(dpid_str);
-		OFPort 	   port = OFPort.of(Integer.parseInt(port_str));
+	    /* dpid和port初始化 */
+		DatapathId dpid = DatapathId.NONE;
+		OFPort 	   port = OFPort.ALL;
+					
 		
+		/* 根据url字段里的dpid_str和port_str给dpid和port赋值 */
+	    if (!dpid_str.trim().equalsIgnoreCase("all")) {
+	            try {
+	                dpid = DatapathId.of(dpid_str);
+	            } catch (Exception e) {
+	                logger.error("Could not parse DPID {}", dpid_str);
+	                return Collections.singletonMap("ERROR", "Could not parse DPID " + dpid_str);
+	            }
+	    } /* else dpid为all */
 	    
+	    if (!port_str.trim().equalsIgnoreCase("all")) {
+            try {
+                port = OFPort.of(Integer.parseInt(port_str));
+            } catch (Exception e) {
+                logger.error("Could not parse port {}", port_str);
+                return Collections.singletonMap("ERROR", "Could not parse port " + port_str);
+            }
+        } /* else port为all */
+	    
+		
 		/* 根据dpid和port通过ITrafficMonitorService获取端口统计信息 */
 	    Set<SwitchPortStatistics> spsSet = new HashSet<SwitchPortStatistics>();
-		if(dpid != null && port !=null){
+	    
+		if(!dpid.equals(DatapathId.NONE) && !port.equals(OFPort.ALL)){	/* 指定交换机指定端口 */
 			SwitchPortStatistics sps = trafficMonitorService.getPortStatistics(dpid, port);
 			if(sps != null){
 				spsSet.add(sps);
@@ -52,6 +74,11 @@ public class PortStatsResource extends ServerResource {
 			else
 			{
 				logger.info("port stats null");
+			}
+		}
+		else if(dpid.equals(DatapathId.NONE) && port.equals(OFPort.ALL)){	/* 获取全部交换机，全部端口的统计信息 */
+			for(Entry<NodePortTuple, SwitchPortStatistics> e: trafficMonitorService.getPortStatistics().entrySet()){
+				spsSet.add(e.getValue());
 			}
 		}
 		

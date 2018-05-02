@@ -31,25 +31,25 @@ public class SwitchPortStatisticsSerializer extends JsonSerializer<SwitchPortSta
 			{
 				jGen.writeStartObject();
 				jGen.writeStringField("dpid", sps.getDpid().toString());
-				jGen.writeStringField("port no:", sps.getPortNo().toString());
+				jGen.writeStringField("port_no", sps.getPortNo().toString());
 				jGen.writeEndObject();
 			}
 			
-			jGen.writeFieldName("port stats");
+			jGen.writeFieldName("port_stats");
 			{
 				jGen.writeStartObject();
-				jGen.writeStringField("rx speed(Bps)", sps.getRxSpeed().getBigInteger().toString());
-				jGen.writeStringField("tx speed(Bps)", sps.getTxSpeed().getBigInteger().toString());
-				jGen.writeStringField("update time", new Date(sps.getUpdateTime()).toString());
+				jGen.writeStringField("rx_speed(Bps)", sps.getRxSpeed().getBigInteger().toString());
+				jGen.writeStringField("tx_speed(Bps)", sps.getTxSpeed().getBigInteger().toString());
+				jGen.writeStringField("update_time", new Date(sps.getUpdateTime()).toString());
 				
-				jGen.writeStringField("rx bytes", sps.getRxBytes().getBigInteger().toString());
-				jGen.writeStringField("tx bytes", sps.getTxBytes().getBigInteger().toString());
+				jGen.writeStringField("rx_bytes", sps.getRxBytes().getBigInteger().toString());
+				jGen.writeStringField("tx_bytes", sps.getTxBytes().getBigInteger().toString());
 				
-				jGen.writeStringField("rx packets", sps.getRxPackets().getBigInteger().toString());
-				jGen.writeStringField("tx packets", sps.getTxPackets().getBigInteger().toString());
+				jGen.writeStringField("rx_packets", sps.getRxPackets().getBigInteger().toString());
+				jGen.writeStringField("tx_packets", sps.getTxPackets().getBigInteger().toString());
 				
-				jGen.writeStringField("rx dropped", sps.getRxDropped().getBigInteger().toString());
-				jGen.writeStringField("tx dropped", sps.getTxDropped().getBigInteger().toString());
+				jGen.writeStringField("rx_dropped", sps.getRxDropped().getBigInteger().toString());
+				jGen.writeStringField("tx_dropped", sps.getTxDropped().getBigInteger().toString());
 				jGen.writeEndObject();
 			}
 		
