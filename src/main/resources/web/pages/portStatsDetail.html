@@ -84,23 +84,26 @@
              <!-- 图表容器 DOM -->
             <div id="container" style="width:800px;height:400px"></div>
                   
-            
-            
-            
+                  <!-- 表格 -->
                 <div class="panel panel-primary">
                     <div class="panel-heading">
-                        Traffic Monitor
+                        Ingress/Egress Statistics
                     </div>
                     <!-- /.panel-heading -->
                     <div class="panel-body">
 
                     	<div class="dataTable_wrapper">
-                            <table class="table table-striped table-bordered table-hover" id="tableSwitchesPorts"
+                            <table class="table table-striped table-bordered table-hover" id="dataTable"
                                    width="100%">
                                 <thead>
                                 <tr>
-                                    <th>Switch ID</th>
-                                    <th>Port NO</th>                       
+                                    <th>Ingress_Bytes</th>  
+                                    <th>Ingress_Packets</th>
+                                    <th>Ingress_Dropped</th>  
+                                    <th>Egress_Bytes</th>
+                                    <th>Egress_Packets</th>
+                                    <th>Egress_Dropped</th>     
+                                    <th>Update_Time</th>             
                                 </tr>
                                 </thead>
                                 <tbody></tbody>
@@ -112,7 +115,6 @@
                 </div>
                 <!-- /.panel -->
 
-            </div>
             <!-- /.col-lg-12 -->
         </div>
         <!-- /.row -->
@@ -142,14 +144,8 @@
 <!-- Custom Theme JavaScript -->
 <script src="../dist/js/sb-admin-2.js"></script>
 
-<!-- PNotify -->
-<script src="../bower_components/pnotify/pnotify.buttons.js"></script>
-<script src="../bower_components/pnotify/pnotify.core.js"></script>
-<script src="../bower_components/pnotify/pnotify.nonblock.js"></script>
+<!-- Custom scripts -->
 <script src="../js/jquery.cookie.js"></script>
-
-<!-- Page-Level Demo Scripts - Tables - Use for reference -->
-
 <script src="../js/querystringparser.js"></script>
 
 <!-- Custom scripts to load in HTML -->
@@ -170,23 +166,34 @@
     var restport = $.cookie('cport');
     if (restport == null || restport == "") window.location.href = "login.html";
 
+	/* 从url中获取参数dpid和port */
+	var dpid = getQueryParameterByName("dpid");
+	var port = getQueryParameterByName("port");
 
+	/* 不使用UTC时间 */
+	Highcharts.setOptions({
+	    global: {
+	        useUTC: false
+	    }
+	});
+	
+	$(document).ready(function(){
+		loadChart();
+		loadTable();
+	});
+	
+	
+	/* 刷新数据提示框函数 */
 	function activeLastPointToolip(chart) {
     var points = chart.series[0].points;
     chart.tooltip.refresh(points[points.length -1]);
 	}
-
-
-	$(document).ready(function(){
-		loadChart();
-	});
 	
-	
-	// 设置图标属性
+	/* 设置图标属性 */
 	function loadChart(){
 			$('#container').highcharts({
 		    chart: {
-		        type: 'spline',				// 曲线图
+		        type: 'areaspline',				// 曲线图
 		        animation: 'false',
 		        marginRight: 10,
 		        events: {
@@ -197,14 +204,17 @@
 			     enabled: false 			// 禁用版权信息
 			},
 		    title: {
-		        text: 'dpid + port live traffic'	//根据dpid和端口号打印标题，标题为dpid + port的实时流量
+		        text: dpid + ' / ' + port +' live traffic'	//根据dpid和端口号打印标题，标题为dpid + port的实时流量
 		    },
 		    xAxis: {
 		    	title:{
 		    		text:'time'
 		    	},
 		        type: 'datetime',
-		        tickPixelInterval: 150
+		        tickInterval: 10 * 1000,		// x轴刻度间隔为10s
+		        dateTimeLabelFormats: { 
+		        	second: '%H:%M:%S'
+		        }
 		    },
 		    yAxis: {
 		        title: {
@@ -217,48 +227,61 @@
 		        }]
 		    },		     
 		    tooltip: {					//数据提示框
-
+				enabled: true,
+				xDateFormat: '%Y-%m-%d %H:%M:%S',
+				shared: true,
+				valueSuffix: ' B/s'
 		    },
 		    legend: {					// 图例
-		        enabled: true
+		        enabled: true,
+		        layout: 'vertical',
+		        align: 'right',
+		        verticalAlign: 'top'
 		    },
 		    exporting: {
 		        enabled: false
 		    },
 		    series: [{					// 数据列
 		        name: 'in',
-		        data: []
+		        data: [],
+		        color: '#FFA500'		// #FFC125橙色
 		    }, {
 		    	name: 'out',
-		    	data: []
+		    	data: [],
+		    	color: '#7CCD7C'		
 		    
 		    }]
 		});
 	}
 	
+	/* ajax异步获取端口统计信息 ，并给图标添加点 */
 	function requestPortStats(){
 		$.ajax({
 			// url的dpid和port用参数传递过来
-		    url: "http://" + ipaddress + ":" + restport + "/wm/trafficmonitor/portstats/00:00:00:00:00:00:00:01/1/json",
+		    url: "http://" + ipaddress + ":" + restport + "/wm/trafficmonitor/portstats/" + dpid + "/" + port + "/json",
 		    success: function(data) { // 接口调用成功回调函数
 		        // data 为服务器返回的数据
 				if(data)
 		        {
+		        	jsonData = data;
+		        	
 			        var chart = $('#container').highcharts();
 			        shift = chart.series[0].data.length > 20; 	// 当数据点数量超过 20 个，则指定删除第一个点
 
 			      var rx_speed = parseInt(data[0].port_stats["rx_speed(Bps)"]);
 			      var tx_speed = parseInt(data[0].port_stats["tx_speed(Bps)"]);
+			      var update_time = (new Date()).getTime();	
 			      
 			      // 新增点操作
 			      //具体的参数详见：https://api.hcharts.cn/highcharts#Series.addPoint
-			      chart.series[0].addPoint(rx_speed, true, shift);
-			      chart.series[1].addPoint(tx_speed, true, shift);
+			      chart.series[0].addPoint([update_time, rx_speed], true, shift);
+			      chart.series[1].addPoint([update_time, tx_speed], true, shift);
 				}
 				
-		      // 一秒后继续调用本函数
-		      setTimeout(requestPortStats, 1000);
+		      // 5秒后继续调用本函数，刷新数据
+		      setTimeout(requestPortStats, 5000);
 		      
+		      activeLastPointToolip(chart)
 		    }
 		    ,
             error: function (jqXHR, textStatus, errorThrown) {
@@ -267,6 +290,30 @@
 	        ,
 		    cache: false
 		});
+	}
+	
+	function loadTable(){
+		$('#dataTable').DataTable({
+			responsive: true,
+            searching: false,
+            lengthChange: false,
+            scrollX: true,
+            paging: false,
+            order: [[0, 'asc']],
+            ajax: {
+                url: "http://" + ipaddress + ":" + restport + "/wm/trafficmonitor/portstats/" + dpid + "/" + port + "/json",
+                dataSrc: ''			// 对获得的服务器数据进行处理，转换成字符串等形式
+            },
+           	columns:[ 
+           		{ data: 'port_stats.rx_bytes' },
+           		{ data: 'port_stats.rx_packets' },
+           		{ data: 'port_stats.rx_dropped' },
+           		{ data: 'port_stats.tx_bytes' },
+           		{ data: 'port_stats.tx_packets' },
+           		{ data: 'port_stats.tx_dropped' },
+           		{ data: 'port_stats.update_time' }
+           	]
+        });
 	}
 	
 	     

@@ -94,7 +94,7 @@
                                 <tr>
                                     <th>Switch ID</th>
                                     <th>Port NO</th>     
-                                    <th></th>                 
+                                    <th>Operation</th>                 
                                 </tr>
                                 </thead>
                                 <tbody></tbody>
@@ -133,18 +133,13 @@
 <!-- Custom Theme JavaScript -->
 <script src="../dist/js/sb-admin-2.js"></script>
 
-<!-- PNotify -->
-<script src="../bower_components/pnotify/pnotify.buttons.js"></script>
-<script src="../bower_components/pnotify/pnotify.core.js"></script>
-<script src="../bower_components/pnotify/pnotify.nonblock.js"></script>
-<script src="../js/jquery.cookie.js"></script>
-
-<!-- Page-Level Demo Scripts - Tables - Use for reference -->
-
+<!-- Custom scripts -->
 <script src="../js/querystringparser.js"></script>
+<script src="../js/jquery.cookie.js"></script>
 
 <!-- Custom scripts to load in HTML -->
 <script src="../js/navbar.js"></script>
+
 <script>
     $(function () {
         $("#login-modal-include").load("loginmodal.html");
@@ -193,20 +188,26 @@
             order: [[0, 'asc']],
             ajax: {
                 url: "http://" + ipaddress + ":" + restport + "/wm/trafficmonitor/portstats/all/all/json",
-                dataSrc: ''
+                dataSrc: ''			// 对获得的服务器数据进行处理，转换成字符串等形式
             },
-            columnDef:[
+            columnDefs:[			// 列渲染，返回超链接portStatsDetail.html?dpid=<value>&port=<value>
             	{
                     "render": function (data, type, row) {
-						return "<a href="portStatsDetail.html>details</a>";
+                    var dpid_str = row.switch.dpid;
+                    var port_str = row.switch.port_no;
+                    
+               //    alert(JSON.stringify(dpid_str));
+               //    alert(JSON.stringify(port_str));
+                    
+						return "<a href='portStatsDetail.html?dpid=" + dpid_str + "&port=" + port_str + "'>details</a>";
                     },
-                    "targets": 2
+                    "targets": 2,
+                    "data": null
                 }
             ],
-            columns: [
+            columns: [			// 列数据
                 {data: 'switch.dpid'},
-                {data: 'switch.port_no'}
-                {data: null}
+                {data: 'switch.port_no'},
             ]
         });
     }
