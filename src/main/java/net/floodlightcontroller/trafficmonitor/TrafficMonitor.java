@@ -83,51 +83,54 @@ public class TrafficMonitor implements IOFMessageListener, IFloodlightModule, IT
 		public void run() {
 
 			Map<DatapathId, List<OFStatsReply>> replies = getSwitchStatistics(switchService.getAllSwitchDpids(), OFStatsType.PORT);
-			logger.info("Got port_stats_replies");
-			
-			/* 第一次收集统计信息 */
-			if(isFirstTime2CollectSwitchStatistics){
-				isFirstTime2CollectSwitchStatistics = false;
-			
-				/* 记录收集的统计信息到prePortStatsReplies */
-				savePortStatsReplies(prePortStatsBuffer, replies);
-			}
-			else{	/* 先前已经收集至少一次统计信息 */
-				savePortStatsReplies(portStatsBuffer, replies);
+			if(!replies.isEmpty()){
+				logger.info("Got port_stats_replies");
 				
-				if(prePortStatsBuffer!=null)
-				for(Entry<NodePortTuple, SwitchPortStatistics> entry : prePortStatsBuffer.entrySet()){
-					NodePortTuple npt = entry.getKey();
+				/* 第一次收集统计信息 */
+				if(isFirstTime2CollectSwitchStatistics){
+					isFirstTime2CollectSwitchStatistics = false;
+				
+					/* 记录收集的统计信息到prePortStatsReplies */
+					savePortStatsReplies(prePortStatsBuffer, replies);
+				}
+				else{	/* 先前已经收集至少一次统计信息 */
+					savePortStatsReplies(portStatsBuffer, replies);
 					
-					/* 计算端口接收速率和发送速率并更新端口统计信息 */
-					if( portStatsBuffer.containsKey(npt)){
-						U64 rxBytes = portStatsBuffer.get(npt).getRxBytes().subtract(prePortStatsBuffer.get(npt).getRxBytes());
-						U64 txBytes = portStatsBuffer.get(npt).getTxBytes().subtract(prePortStatsBuffer.get(npt).getTxBytes());
+					if(prePortStatsBuffer!=null)
+					for(Entry<NodePortTuple, SwitchPortStatistics> entry : prePortStatsBuffer.entrySet()){
+						NodePortTuple npt = entry.getKey();
 						
-						long period = portStatsBuffer.get(npt).getDuration() - prePortStatsBuffer.get(npt).getDuration();
-						
-						U64 rxSpeed = U64.ofRaw(rxBytes.getValue() / period);
-						U64 txSpeed = U64.ofRaw(txBytes.getValue() / period);
-										
-						/* 更新 */
-						portStatsBuffer.get(npt).setRxSpeed(rxSpeed);
-						portStatsBuffer.get(npt).setTxSpeed(txSpeed);
-					}					
+						/* 计算端口接收速率和发送速率并更新端口统计信息 */
+						if( portStatsBuffer.containsKey(npt)){
+							U64 rxBytes = portStatsBuffer.get(npt).getRxBytes().subtract(prePortStatsBuffer.get(npt).getRxBytes());
+							U64 txBytes = portStatsBuffer.get(npt).getTxBytes().subtract(prePortStatsBuffer.get(npt).getTxBytes());
+							
+							long period = portStatsBuffer.get(npt).getDuration() - prePortStatsBuffer.get(npt).getDuration();
+							
+							U64 rxSpeed = U64.ofRaw(rxBytes.getValue() / period);
+							U64 txSpeed = U64.ofRaw(txBytes.getValue() / period);
+											
+							/* 更新 */
+							portStatsBuffer.get(npt).setRxSpeed(rxSpeed);
+							portStatsBuffer.get(npt).setTxSpeed(txSpeed);
+						}					
+					}
+					
+					/* 打印端口统计信息 
+					logger.info("ready to print stats");
+					for(Entry<NodePortTuple, SwitchPortStatistics> e : portStatsBuffer.entrySet()){
+						e.getValue().printPortStatistics();
+					}
+					*/
+					
+					/* 更新prePortStatsBuffer */
+					prePortStatsBuffer.clear();
+					prePortStatsBuffer.putAll(portStatsBuffer);
+					portStatsBuffer.clear();
+					logger.info("prePortStatsBuffer updated");
 				}
-				
-				/* 打印端口统计信息 
-				logger.info("ready to print stats");
-				for(Entry<NodePortTuple, SwitchPortStatistics> e : portStatsBuffer.entrySet()){
-					e.getValue().printPortStatistics();
-				}
-				*/
-				
-				/* 更新prePortStatsBuffer */
-				prePortStatsBuffer.clear();
-				prePortStatsBuffer.putAll(portStatsBuffer);
-				portStatsBuffer.clear();
-				logger.info("prePortStatsBuffer updated");
 			}
+			
 		
 		}
 		
@@ -470,130 +473,5 @@ public class TrafficMonitor implements IOFMessageListener, IFloodlightModule, IT
 		// TODO Auto-generated method stub
 		return prePortStatsBuffer.get(new NodePortTuple(dpid, port));
 	}
-	
-
-	
-
-	
-	
-/*************************************************** 可以删除 ******************************************************************/	
-	
-	
-	/**
-	 *  向交换机发送port_stats_request消息,返回用future类封装的port_stats_reply消息
-	 */
-	private void sendPortStatsRequest()
-	{
-		OFFactory my13Factory = OFFactories.getFactory(OFVersion.OF_13);
-
-		/*
-		Set<OFStatsRequestFlags> set = new HashSet<OFStatsRequestFlags>();
-		set.add(OFStatsRequestFlags.REQ_MORE);
-		*/
-		
-		// 封装port_stats_request
-		OFPortStatsRequest request = my13Factory.buildPortStatsRequest()
-				.setPortNo(OFPort.ANY)
-		//		.setFlags(set)
-				.build();
-
-		HashSet<IOFSwitch> switchSet = (HashSet<IOFSwitch>) getAllSwitchInstance();
-		IOFSwitch mySwitch;
-			
-		// 从switchSet里取出各个交换机实例，并发送port_stats_request给这些交换机
-		Iterator<IOFSwitch> it4switchSet = switchSet.iterator();
-		while(it4switchSet.hasNext()){
-			mySwitch = it4switchSet.next();
-			
-			if(mySwitch != null && mySwitch.isConnected())
-			{
-	
-				// 发送port_stats_request，结果port_stats_reply封装在future类中
-				ListenableFuture<List<OFPortStatsReply>> future = mySwitch.writeStatsRequest(request);			
-				
-				processPortStatsReply(future, mySwitch);
-			}
-			else
-			{
-				logger.error("Switch dpid: { " + mySwitch.getId() + " } is not connected");
-			}
-		}
-	}
-	
-	/**
-	 * 	处理future中的port_stats_reply消息，将统计信息打印
-	 * @param future 封装了port_stats_reply 
-	 * @param sw 发送port_stats_reply的交换机
-	 * 
-	 */
-	private void processPortStatsReply(ListenableFuture<List<OFPortStatsReply>> future, IOFSwitch sw){
-		if(future == null){
-			logger.error("future null at processPortStatsReply() ");
-			return;
-		}
-		else{
-			logger.info("start processing port_stats_reply");
-			
-			List<OFPortStatsReply> replyList = null;
-			try {
-				replyList = future.get();
-				logger.info("replyList_length:" + replyList.toArray().length);	// replyList长度一般都为1，只收到一个reply
-			} catch (InterruptedException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			} catch (ExecutionException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-			
-			// 打印端口统计信息
-			for(OFPortStatsReply psr : replyList ){
-				for(OFPortStatsEntry entry : psr.getEntries()){
-					
-					String printInfo = "\n[ switch dpid : " + sw.getId() + " ]\n";
-					printInfo += "[ port no : " + entry.getPortNo() + " ]\n";
-					printInfo += "[ TxPackets : " + entry.getTxPackets()+ " ]\n";
-					printInfo += "[ RxPackets : " + entry.getRxPackets()+ " ]\n";
-	
-					// Add here: 添加更多要打印的端口统计信息
-					
-					logger.info(printInfo);
-				}
-				/* 将交换机的端口统计信息缓存
-				swPortStatsReplyBuffer.put(sw.getId(), psr); */
-
-			}	
-			
-			
-		}
-
-	}
-	
-	
-	
-	/**
-	 *  获取所有交换机的实例
-	 * 	@return IOFSwitch的集合
-	 */
-	private Set<IOFSwitch> getAllSwitchInstance(){
-		// 用于存储IOFSwitch的集合
-		Set<IOFSwitch> switchSet = new HashSet<IOFSwitch>();
-		
-		Set<DatapathId>	dpidSet = switchService.getAllSwitchDpids();
-		DatapathId dpid;
-		
-		Iterator<DatapathId> it4dpidSet = dpidSet.iterator();
-		while(it4dpidSet.hasNext()){
-			dpid = it4dpidSet.next();
-			switchSet.add(switchService.getSwitch(dpid));
-		}
-		
-		return switchSet;
-		
-	}
-
-
-
-
 }
 
