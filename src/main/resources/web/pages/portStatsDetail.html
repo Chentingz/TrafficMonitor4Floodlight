@@ -9,7 +9,7 @@
     <meta name="description" content="">
     <meta name="author" content="">
 
-    <title>Floodlight OpenFlow Controller - Statistics</title>
+    <title>Port Statistics Detail</title>
 
     <!-- Bootstrap Core CSS -->
     <link href="../bower_components/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -87,7 +87,7 @@
                   <!-- 表格 -->
                 <div class="panel panel-primary">
                     <div class="panel-heading">
-                        Ingress/Egress Statistics
+                        Input/Output Statistics
                     </div>
                     <!-- /.panel-heading -->
                     <div class="panel-body">
@@ -97,13 +97,13 @@
                                    width="100%">
                                 <thead>
                                 <tr>
-                                    <th>Ingress_Bytes</th>  
-                                    <th>Ingress_Packets</th>
-                                    <th>Ingress_Dropped</th>  
-                                    <th>Egress_Bytes</th>
-                                    <th>Egress_Packets</th>
-                                    <th>Egress_Dropped</th>     
-                                    <th>Update_Time</th>             
+                              	  	<th>Update_Time</th> 
+                                    <th>Input_Bytes</th>  
+                                    <th>Input_Packets</th>
+                                    <th>Input_Dropped</th>  
+                                    <th>Output_Bytes</th>
+                                    <th>Output_Packets</th>
+                                    <th>Output_Dropped</th>                                                    
                                 </tr>
                                 </thead>
                                 <tbody></tbody>
@@ -170,28 +170,41 @@
 	var dpid = getQueryParameterByName("dpid");
 	var port = getQueryParameterByName("port");
 
-	/* 不使用UTC时间 */
-	Highcharts.setOptions({
-	    global: {
-	        useUTC: false
-	    }
-	});
-	
+	var dataTable = null;
+	var chart = null;
+	var refreshInterval = 5000;
+
 	$(document).ready(function(){
 		loadChart();
 		loadTable();
+		startRefresh();
 	});
 	
+	/*
+     * 刷新页面上的表格
+     * */
+    function startRefresh() {
+        setTimeout(startRefresh, refreshInterval);
+        dataTable.ajax.reload();
+    }
 	
+
 	/* 刷新数据提示框函数 */
 	function activeLastPointToolip(chart) {
     var points = chart.series[0].points;
     chart.tooltip.refresh(points[points.length -1]);
 	}
 	
-	/* 设置图标属性 */
+	/* 不使用UTC时间 */
+	Highcharts.setOptions({
+	    global: {
+	        useUTC: false
+	    }
+	});    
+	
+	/* 加载图表 */
 	function loadChart(){
-			$('#container').highcharts({
+		chart = $('#container').highcharts({
 		    chart: {
 		        type: 'areaspline',				// 曲线图
 		        animation: 'false',
@@ -204,8 +217,11 @@
 			     enabled: false 			// 禁用版权信息
 			},
 		    title: {
-		        text: dpid + ' / ' + port +' live traffic'	//根据dpid和端口号打印标题，标题为dpid + port的实时流量
+		        text: 'Live Traffic'	
 		    },
+		    subtitle: {
+			    text: 'Switch Id:' + dpid + ' / Port No:' + port
+			},
 		    xAxis: {
 		    	title:{
 		    		text:'time'
@@ -244,11 +260,11 @@
 		    series: [{					// 数据列
 		        name: 'in',
 		        data: [],
-		        color: '#FFA500'		// #FFC125橙色
+		        color: '#FFA500'		// 橙色
 		    }, {
 		    	name: 'out',
 		    	data: [],
-		    	color: '#7CCD7C'		
+		    	color: '#7CCD7C'		// 绿色
 		    
 		    }]
 		});
@@ -266,20 +282,20 @@
 		        	jsonData = data;
 		        	
 			        var chart = $('#container').highcharts();
-			        shift = chart.series[0].data.length > 20; 	// 当数据点数量超过 20 个，则指定删除第一个点
-
-			      var rx_speed = parseInt(data[0].port_stats["rx_speed(Bps)"]);
-			      var tx_speed = parseInt(data[0].port_stats["tx_speed(Bps)"]);
-			      var update_time = (new Date()).getTime();	
-			      
-			      // 新增点操作
-			      //具体的参数详见：https://api.hcharts.cn/highcharts#Series.addPoint
-			      chart.series[0].addPoint([update_time, rx_speed], true, shift);
-			      chart.series[1].addPoint([update_time, tx_speed], true, shift);
+			       	var shift1 = chart.series[0].data.length > 20; 	// 当数据点数量超过 20 个，则指定删除第一个点
+					var shift2 = chart.series[1].data.length > 20;
+				    var rx_speed = parseInt(data[0].port_stats["rx_speed(Bps)"]);
+				    var tx_speed = parseInt(data[0].port_stats["tx_speed(Bps)"]);
+				    var update_time = (new Date()).getTime();	
+				      
+				    // 新增点操作
+				    //具体的参数详见：https://api.hcharts.cn/highcharts#Series.addPoint
+				    chart.series[0].addPoint([update_time, rx_speed], true, shift1);
+				    chart.series[1].addPoint([update_time, tx_speed], true, shift2);
 				}
 				
-		      // 5秒后继续调用本函数，刷新数据
-		      setTimeout(requestPortStats, 5000);
+		      /* refreshInterval时间后继续调用本函数，刷新数据 */
+		      setTimeout(requestPortStats, refreshInterval);
 		      
 		      activeLastPointToolip(chart)
 		    }
@@ -292,8 +308,9 @@
 		});
 	}
 	
+	/* 加载表格 */
 	function loadTable(){
-		$('#dataTable').DataTable({
+		dataTable = $('#dataTable').DataTable({
 			responsive: true,
             searching: false,
             lengthChange: false,
@@ -305,13 +322,14 @@
                 dataSrc: ''			// 对获得的服务器数据进行处理，转换成字符串等形式
             },
            	columns:[ 
+           	    { data: 'port_stats.update_time' },
            		{ data: 'port_stats.rx_bytes' },
            		{ data: 'port_stats.rx_packets' },
            		{ data: 'port_stats.rx_dropped' },
            		{ data: 'port_stats.tx_bytes' },
            		{ data: 'port_stats.tx_packets' },
-           		{ data: 'port_stats.tx_dropped' },
-           		{ data: 'port_stats.update_time' }
+           		{ data: 'port_stats.tx_dropped' }
+           		
            	]
         });
 	}

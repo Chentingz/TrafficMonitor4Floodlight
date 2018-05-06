@@ -9,7 +9,7 @@
     <meta name="description" content="">
     <meta name="author" content="">
 
-    <title>Floodlight OpenFlow Controller - Statistics</title>
+    <title>Floodlight OpenFlow Controller - Traffic Monitor</title>
 
     <!-- Bootstrap Core CSS -->
     <link href="../bower_components/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -92,12 +92,51 @@
                                    width="100%">
                                 <thead>
                                 <tr>
-                                    <th>Switch ID</th>
-                                    <th>Port NO</th>     
+                                    <th>Switch Id</th>
+                                    <th>Port No</th>     
                                     <th>Operation</th>                 
                                 </tr>
                                 </thead>
                                 <tbody></tbody>
+                            </table>
+                        </div>                 
+						<!-- /.table-responsive -->
+                    </div>
+                    <!-- /.panel-body -->
+                </div>
+                <!-- /.panel -->
+                
+                 <div class="panel panel-primary">
+                    <div class="panel-heading">
+                        Policy
+                    </div>
+                    <!-- /.panel-heading -->
+                    <div class="panel-body">
+
+                    	<div class="dataTable_wrapper">
+                            <table class="table table-hover" id="policyTable"
+                                   width="100%">
+                                <tr>
+                                    <td><b>Port Speed Threshold</b></td>
+                                    <td>: <span id="portSpeedThreshold"></span></td>        
+                                </tr>
+                                <tr>
+                                    <td><b>Action</b></td>
+                                    <td>: <span id="action"></span></td>        
+                                </tr>
+                                <tr>
+                                    <td><b>Action Duration</b></td>
+                                    <td>: <span id="actionDuration"></span></td>        
+                                </tr>
+                                <tr>
+                                    <td><b>Rate Limit</b></td>
+                                    <td>: <span id="rateLimit"></span></td>        
+                                </tr>
+                                <tr>
+									<td>
+									<a href="#" class="btn btn-sm btn-primary" data-toggle="modal" data-target="#policyConfigModal">Config</a>
+                               		</td>
+                                </tr>
                             </table>
                         </div>                 
 						<!-- /.table-responsive -->
@@ -110,6 +149,55 @@
             <!-- /.col-lg-12 -->
         </div>
         <!-- /.row -->
+        
+        <!-- Policy Config -->
+        <div class="modal fade" tabindex="-1" id="policyConfigModal" role="dialog" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <button type="button" class="close" id="roleModalCloseButton2" data-dismiss="modal"
+                                aria-label="Close">
+                            <span aria-hidden="true">x</span>
+                        </button>
+                        <h4 class="modal-title" id="myModalLabel2">Policy Config</h4>
+                    </div>
+                    <div class="modal-body">
+                        <div class="form">
+                            <div class="form-group">
+                                <label>Port Speed Threshold (Bps,Used to detect abnormal traffic)</label>
+                                <input class="form-control" type="text" id="inputPortSpeedThreshold" placeholder="0">
+                            </div>
+
+                            <div class="form-group">
+                                <label>Action</label>
+                                <select class="form-control"  id="selectAction" onchange="checkRateLimitSelected()">
+                                	<option value="none">none</option>
+                                	<option value="drop">drop</option>
+                                	<option value="limit" id="limit">limit</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Action Duration (s)</label>
+                                <input class="form-control" type="text" id="inputActionDuration" placeholder="0">
+                            </div>
+
+                            <div class="form-group">
+                                <label>Rate Limit (Bps)</label>
+                                <input class="form-control" type="text" id="inputRateLimit" readonly="readonly" placeholder="0">
+                            </div>
+
+                        </div>
+                    </div>
+                    <div class="modal-footer">                  
+                        <button type="button" id="btnUpdatePolicy" class="btn btn-sm btn-primary">Update</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+
+        
     </div>
     <!-- /#page-wrapper -->
     <div id="login-modal-include"></div>
@@ -129,6 +217,11 @@
 <!-- DataTables JavaScript -->
 <script src="../bower_components/datatables/media/js/jquery.dataTables.min.js"></script>
 <script src="../bower_components/datatables-plugins/integration/bootstrap/3/dataTables.bootstrap.min.js"></script>
+
+<!-- PNotify -->
+<script src="../bower_components/pnotify/pnotify.buttons.js"></script>
+<script src="../bower_components/pnotify/pnotify.core.js"></script>
+<script src="../bower_components/pnotify/pnotify.nonblock.js"></script>
 
 <!-- Custom Theme JavaScript -->
 <script src="../dist/js/sb-admin-2.js"></script>
@@ -157,17 +250,15 @@
     var restport = $.cookie('cport');
     if (restport == null || restport == "") window.location.href = "login.html";
 
-     /*
-     *  读取交换机dpid和端口号，并打印到表格上
-     *	
-     * */
     $(document).ready(function () {
         loadSwitchesAndPorts();
+        loadPolicyConf();
         startRefresh();
     });
     
+    
     /*
-     * Refreshes all of the values on the page every fifteen seconds.
+     * 每15秒更新一次交换机和端口信息
      * */
     function startRefresh() {
         setTimeout(startRefresh, 15000);
@@ -193,12 +284,9 @@
             columnDefs:[			// 列渲染，返回超链接portStatsDetail.html?dpid=<value>&port=<value>
             	{
                     "render": function (data, type, row) {
-                    var dpid_str = row.switch.dpid;
-                    var port_str = row.switch.port_no;
-                    
-               //    alert(JSON.stringify(dpid_str));
-               //    alert(JSON.stringify(port_str));
-                    
+	                    var dpid_str = row.switch.dpid;
+	                    var port_str = row.switch.port_no;
+                                
 						return "<a href='portStatsDetail.html?dpid=" + dpid_str + "&port=" + port_str + "'>details</a>";
                     },
                     "targets": 2,
@@ -211,8 +299,119 @@
             ]
         });
     }
-     
-     
+    
+    
+     /*
+     * 	打印策略到表格上
+     * */ 
+    function loadPolicyConf() {
+        $.ajax({
+            url: "http://" + ipaddress + ":" + restport + "/wm/trafficmonitor/policyconf/list/json",
+            success: function (data) {
+				$('#portSpeedThreshold').html(data["port_speed_threshold"]);
+				$('#action').html(data["action"]);
+				$('#actionDuration').html(data["action_duration"]);
+				$('#rateLimit').html(data["rate_limit"]);				
+            },
+            error: function (jqXHR, textStatus, errorThrown) {
+                alert('Error: ' + " " + jqXHR.responseText + " \n Status: " + textStatus + " \n Error Thrown: " + errorThrown);
+            }
+        });
+    }
+    
+     /*
+     * 	若下拉菜单选中"limit"，则允许输入Rate Limit
+     *  否则，清除Rate Limit文本框并将其设为只读
+     * */ 
+    function checkRateLimitSelected(){
+    	var selectedOption = $("#selectAction option:selected");
+    	
+    	if(selectedOption.val() == "limit"){
+    		$('#inputRateLimit').removeAttr("readonly");
+    	}
+    	else{
+    		$('#inputRateLimit').attr("readonly",true);
+    		$('#inputRateLimit').val("0");
+    	}
+    	
+    }
+    
+    $("#btnUpdatePolicy").click(function () {
+        updatePolicy();
+    });
+    
+    /* 更新策略 */
+    function updatePolicy(){
+    	var portSpeedThreshold = $("#inputPortSpeedThreshold").val();
+        var action = $("#selectAction").val();
+        var actionDuration = $("#inputActionDuration").val();
+        var rateLimit = "";
+        if(action == "limit"){
+			rateLimit = $("#inputRateLimit").val();	
+        }
+        
+        /* 将数据组装成json格式 */
+        var postData = "";
+        
+        postData += '{"port_speed_threshold":';
+        if(portSpeedThreshold != "")
+        	postData += "\"" + portSpeedThreshold + "\",";
+        else
+        	postData += '"0",';
+        
+        postData += '"action":';
+        if(action != "")
+        	postData += "\"" + action + "\",";
+        else
+        	postData += '"none",';
+        	
+        postData += '"action_duration":';
+		if(actionDuration != "") 
+			postData += "\"" + actionDuration + "\",";
+		else
+			postData += '"0",';
+			
+		postData += '"rate_limit":';
+		if(rateLimit != "") 
+			postData += "\"" + rateLimit + "\",";
+		else
+			postData += '"0"';
+			
+		postData += "}";
+
+ 		$.ajax({
+            type: "POST",
+            dataType: 'json',
+            url: "http://" + ipaddress + ":" + restport + "/wm/trafficmonitor/policyconf/json",
+            data: postData,
+            success: function (data) {
+                if (data["status"] == "Policy updated") {
+                    new PNotify({
+                        title: 'Policy updated',
+                        text: 'Policy has been updated successfully.',
+                        type: 'success',
+                        hide: true
+                    });
+                    
+					loadPolicyConf();
+                }
+                else {
+
+                    new PNotify({
+                        title: 'Error Occured.',
+                        type: 'error',
+                        hide: true
+                    });
+                }
+
+            },
+            error: function (jqXHR, textStatus, errorThrown) {
+                alert('Error: ' + " " + jqXHR.responseText + " \n Status: " + textStatus + " \n Error Thrown: " + errorThrown);
+            }
+        });
+
+    }
+
 </script>
 
 </body>
