@@ -26,7 +26,7 @@ import org.slf4j.LoggerFactory;
  * 取出dpid和port，并调用ITrafficMonitorService的getPortStatistics()，获取指定交换机端口的统计信息
  */
 public class PortStatsResource extends ServerResource {
-	private static final Logger logger = LoggerFactory.getLogger(BandwidthResource.class);
+	private static final Logger logger = LoggerFactory.getLogger(PortStatsResource.class);
 	
 	@Get("json")
 	public Object retrieve() {

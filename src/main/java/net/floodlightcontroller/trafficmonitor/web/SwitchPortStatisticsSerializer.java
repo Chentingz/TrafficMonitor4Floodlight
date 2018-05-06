@@ -50,6 +50,7 @@ public class SwitchPortStatisticsSerializer extends JsonSerializer<SwitchPortSta
 				
 				jGen.writeStringField("rx_dropped", sps.getRxDropped().getBigInteger().toString());
 				jGen.writeStringField("tx_dropped", sps.getTxDropped().getBigInteger().toString());
+				jGen.writeStringField("duration", String.valueOf(sps.getDurationSec()));
 				jGen.writeEndObject();
 			}
 		

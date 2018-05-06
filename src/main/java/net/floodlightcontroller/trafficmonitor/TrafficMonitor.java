@@ -3,14 +3,13 @@ package net.floodlightcontroller.trafficmonitor;
 import java.lang.Thread.State;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
@@ -19,12 +18,9 @@ import org.projectfloodlight.openflow.protocol.OFFactory;
 import org.projectfloodlight.openflow.protocol.OFMessage;
 import org.projectfloodlight.openflow.protocol.OFPortStatsEntry;
 import org.projectfloodlight.openflow.protocol.OFPortStatsReply;
-import org.projectfloodlight.openflow.protocol.OFPortStatsRequest;
 import org.projectfloodlight.openflow.protocol.OFStatsReply;
 import org.projectfloodlight.openflow.protocol.OFStatsRequest;
-import org.projectfloodlight.openflow.protocol.OFStatsRequestFlags;
 import org.projectfloodlight.openflow.protocol.OFStatsType;
-import org.projectfloodlight.openflow.protocol.OFTable;
 import org.projectfloodlight.openflow.protocol.OFType;
 import org.projectfloodlight.openflow.protocol.OFVersion;
 import org.projectfloodlight.openflow.protocol.match.Match;
@@ -36,7 +32,6 @@ import org.projectfloodlight.openflow.types.U64;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.fasterxml.jackson.dataformat.yaml.snakeyaml.nodes.NodeTuple;
 import com.google.common.util.concurrent.ListenableFuture;
 
 import net.floodlightcontroller.core.FloodlightContext;
@@ -59,21 +54,28 @@ public class TrafficMonitor implements IOFMessageListener, IFloodlightModule, IT
 	
 	protected static final Logger logger = LoggerFactory.getLogger(TrafficMonitor.class);
 	
-	private IFloodlightProviderService 	floodlightProvider;
 	private IOFSwitchService 			switchService;
 	private IThreadPoolService 			threadPoolService;		// 线程池
-	protected IRestApiService			restApiService;
+	private IRestApiService				restApiService;
 	
+	/* 配置参数 */
+	private static long portStatsInterval = 10;			// 收集交换机端口统计量的周期,单位为秒
+	private static U64  portSpeedThreshold = U64.ZERO;	// 端口流量阈值
+	private static String action = null;				// 执行动作（针对异常流量）
+	private static long actionDuration = 0;				// 动作持续时间
+	private static U64 rateLimit = U64.ZERO;			// 执行限速动作时使用的速率限制
 	
+	private static Policy policy = new Policy();
 	
-	private static final long portStatsInterval = 10;			// 收集交换机端口统计量的周期,单位为秒
 	private static ScheduledFuture<?> portStatsCollector;		// 用于接收线程池的返回值，收集port_stats
 	private static ScheduledFuture<?> flowStatsCollector;		// 用于接收线程池的返回值，收集flow_stats
 	
 	private static HashMap<NodePortTuple, SwitchPortStatistics> prePortStatsBuffer;	// 用于缓存先前的交换机端口统计信息，在init（）中进行初始化	
 	private static HashMap<NodePortTuple, SwitchPortStatistics> portStatsBuffer;	// 用于缓存当前的交换机端口统计信息
-
+	private static HashSet<NodePortTuple> 						abnormalTrafficSet = new HashSet<NodePortTuple>();				// 异常流量集合
+	private static HashMap<NodePortTuple, Date> 				addFlowEntiesHistoryMap = new HashMap<NodePortTuple, Date>();	// 流表项添加记录，防止下发重复流表项
 	private boolean isFirstTime2CollectSwitchStatistics = true;
+	
 	/**
 	 * 线程，该类用于收集交换机端口统计信息并计算端口接收速率，发送速率
 	 * 在startPortStatsCollection()中使用
@@ -128,10 +130,16 @@ public class TrafficMonitor implements IOFMessageListener, IFloodlightModule, IT
 					prePortStatsBuffer.putAll(portStatsBuffer);
 					portStatsBuffer.clear();
 					logger.info("prePortStatsBuffer updated");
+					
+					/* 端口速率分析 */
+					abnormalTrafficSet.clear();
+					TrafficAnalyzer.Analysis(prePortStatsBuffer, abnormalTrafficSet);
+					if(!abnormalTrafficSet.isEmpty()){
+						TrafficControl.Control(switchService, abnormalTrafficSet, addFlowEntiesHistoryMap);
+					}
+					
 				}
 			}
-			
-		
 		}
 		
 		/**
@@ -407,7 +415,6 @@ public class TrafficMonitor implements IOFMessageListener, IFloodlightModule, IT
 		// TODO Auto-generated method stub
 		   Collection<Class<? extends IFloodlightService>> l =
 			        new ArrayList<Class<? extends IFloodlightService>>();
-			    l.add(IFloodlightProviderService.class);
 			    l.add(IOFSwitchService.class);
 			    l.add(IThreadPoolService.class);
 			    l.add(IRestApiService.class);
@@ -421,7 +428,6 @@ public class TrafficMonitor implements IOFMessageListener, IFloodlightModule, IT
 	public void init(FloodlightModuleContext context)
 			throws FloodlightModuleException {
 		// TODO Auto-generated method stub
-		floodlightProvider = context.getServiceImpl(IFloodlightProviderService.class);
 		switchService = context.getServiceImpl(IOFSwitchService.class);
 		threadPoolService = context.getServiceImpl(IThreadPoolService.class);
 		restApiService = context.getServiceImpl(IRestApiService.class);
@@ -473,5 +479,70 @@ public class TrafficMonitor implements IOFMessageListener, IFloodlightModule, IT
 		// TODO Auto-generated method stub
 		return prePortStatsBuffer.get(new NodePortTuple(dpid, port));
 	}
+
+	@Override
+	public U64 getPortSpeedThreshold() {
+		// TODO Auto-generated method stub
+		return portSpeedThreshold;
+	}
+
+	@Override
+	public String getAction() {
+		// TODO Auto-generated method stub
+		return action;
+	}
+
+	@Override
+	public long getActionDuration() {
+		// TODO Auto-generated method stub
+		return actionDuration;
+	}
+
+	@Override
+	public U64 getRateLimit() {
+		// TODO Auto-generated method stub
+		return rateLimit;
+	}
+
+	@Override
+	public U64 setPortSpeedThreshold(U64 portSpeedThreshold) {
+		// TODO Auto-generated method stub
+		return this.portSpeedThreshold = portSpeedThreshold;
+	}
+
+	@Override
+	public String setAction(String action) {
+		// TODO Auto-generated method stub
+		return this.action = action;
+	}
+
+	@Override
+	public long setActionDuration(long actionDuration) {
+		// TODO Auto-generated method stub
+		return this.actionDuration = actionDuration;
+	}
+
+	@Override
+	public U64 setRateLimit(U64 rateLimit) {
+		// TODO Auto-generated method stub
+		return this.rateLimit = rateLimit;
+	}
+
+	@Override
+	public Policy getPolicy() {
+		// TODO Auto-generated method stub
+		return policy;
+	}
+
+	@Override
+	public void setPolicy(U64 portSpeedThreshold, String action,
+			long actionDuration, U64 rateLimit) {
+		policy.setPortSpeedThreshold(portSpeedThreshold);
+		policy.setAction(action);
+		policy.setActionDuration(actionDuration);
+		policy.setRateLimit(rateLimit);
+		
+	}
+
 }
 
