@@ -2,7 +2,7 @@
 添加了流量监控模块的Floodlight控制器
 
 ## Log：
-* 2018/5/6  添加策略配置功能，可通过REST API配置、获取策略。添加流量分析和控制功能，实现端口流量超过阈值，根据配置策略实施异常流量控制（目前只实现流量丢弃，限速未实现）  
+* **2018/5/6**  添加策略配置功能，可通过REST API配置、获取策略。添加流量分析和控制功能，实现端口流量超过阈值，根据配置策略实施异常流量控制（目前只实现流量丢弃，限速未实现）  
 
 ![TrafficMonitor-SwitchConnected.png](https://github.com/Chentingz/TrafficMonitor4Floodlight/blob/master/img4ReadMe/TrafficMonitor-SwitchConnected.png)  
 
@@ -14,15 +14,15 @@
 
 ![PortStatsDetail-Statistics.png](https://github.com/Chentingz/TrafficMonitor4Floodlight/blob/master/img4ReadMe/PortStatsDetail-Statistics.png)  
 
-* 2018/5/4  完善trafficMonitor.html和portStatsDetail.html，实现trafficMonitor.html跳转到portStatsDetail.html，并且在portStatsDetail.html中能够实时显示交换机端口流量  
+* **2018/5/4**  完善trafficMonitor.html和portStatsDetail.html，实现trafficMonitor.html跳转到portStatsDetail.html，并且在portStatsDetail.html中能够实时显示交换机端口流量  
 
 ![Areaspline.png](https://github.com/Chentingz/TrafficMonitor4Floodlight/blob/master/img4ReadMe/Areaspline%20.png)  
 
-* 2018/5/3  添加portStatsDetail.html页面，用highchart（js图表库）以曲线图形式实现交换机端口流量实时显示  
+* **2018/5/3**  添加portStatsDetail.html页面，用 **highchart（js图表库）** 以曲线图形式实现交换机端口流量实时显示  
 
 ![portStatsDetail-html.png](https://github.com/Chentingz/TrafficMonitor4Floodlight/blob/master/img4ReadMe/portStatsDetail-html.png)  
 
-* 2018/4/30 添加用于查询交换机端口统计信息的REST API,输入`http://localhost:8080/wm/trafficmonitor/portstats/<dpid>/<portno>/json`即可获取指定交换机端口的统计信息  
+* **2018/4/30** 添加用于查询交换机端口统计信息的REST API,输入`http://localhost:8080/wm/trafficmonitor/portstats/<dpid>/<portno>/json`即可获取指定交换机端口的统计信息  
 
 ![TrafficMonitor API - Port Stats.png](https://github.com/Chentingz/TrafficMonitor4Floodlight/blob/master/img4ReadMe/TrafficMonitor%20API%20-%20Port%20Stats.png)
   
