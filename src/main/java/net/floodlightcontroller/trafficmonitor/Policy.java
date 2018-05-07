@@ -1,12 +1,17 @@
 package net.floodlightcontroller.trafficmonitor;
 
+import org.projectfloodlight.openflow.types.OFPort;
 import org.projectfloodlight.openflow.types.U64;
 
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+
 import net.floodlightcontroller.trafficmonitor.web.PolicySerializer;
 
 @JsonSerialize(using=PolicySerializer.class)
 public class Policy {
+	public static final String ACTION_NONE = "none";
+	public static final String ACTION_DROP = "drop";
+	public static final String ACTION_LIMIT = "limit";
 
 	private U64 portSpeedThreshold;
 	private String action;
@@ -15,7 +20,7 @@ public class Policy {
 	
 	public Policy(){
 		portSpeedThreshold = U64.ZERO;
-		action = "none";
+		action = ACTION_NONE;
 		actionDuration = 0;
 		rateLimit = U64.ZERO;
 	}
