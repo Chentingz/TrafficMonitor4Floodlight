@@ -88,7 +88,7 @@
                     <div class="panel-body">
 
                     	<div class="dataTable_wrapper">
-                            <table class="table table-striped table-bordered table-hover" id="tableSwitchesPorts"
+                            <table class="table table-striped table-bordered table-hover" id="switchPortTable"
                                    width="100%">
                                 <thead>
                                 <tr>
@@ -137,6 +137,39 @@
 									<a href="#" class="btn btn-sm btn-primary" data-toggle="modal" data-target="#policyConfigModal">Config</a>
                                		</td>
                                 </tr>
+                            </table>
+                        </div>                 
+						<!-- /.table-responsive -->
+                    </div>
+                    <!-- /.panel-body -->
+                </div>
+                <!-- /.panel -->
+                
+                <div class="panel panel-primary">
+                    <div class="panel-heading">
+                        Events
+                    </div>
+                    <!-- /.panel-heading -->
+                    <div class="panel-body">
+
+                    	<div class="dataTable_wrapper">
+                            <table class="table table-striped table-bordered table-hover " id="eventsTable"
+                                   width="100%">
+                            	<thead>
+	                                <tr>
+	                                	<th>Time</th>                                           
+	                                	<th>Source</th> 
+	                                	<th>Source_port</th>	                              	
+	                                	<th>Description</th> 
+	                                	<th>Description_portSpeed</th> 
+	                                	<th>Description_rxSpeed</th>
+	                                	<th>Description_txSpeed</th>  
+	                                	<th>System Action</th>
+	                                	<th>System Action_actionDuration</th>
+	                                	<th>System Action_rateLimit</th>
+	                                </tr>
+                                </thead>    
+								<tbody></tbody>
                             </table>
                         </div>                 
 						<!-- /.table-responsive -->
@@ -252,7 +285,8 @@
 
     $(document).ready(function () {
         loadSwitchesAndPorts();
-        loadPolicyConf();
+        loadPolicy();
+        loadEvents();
         startRefresh();
     });
     
@@ -264,13 +298,14 @@
         setTimeout(startRefresh, 15000);
 
         switchPortTable.ajax.reload();
+        eventTable.ajax.reload();
     }
     
      /*
      * 获取交换机dpid和端口号的函数
      * */
     function loadSwitchesAndPorts() {
-        switchPortTable = $('#tableSwitchesPorts').DataTable({
+        switchPortTable = $('#switchPortTable').DataTable({
             responsive: true,
             searching: false,
             lengthChange: false,
@@ -304,9 +339,9 @@
      /*
      * 	打印策略到表格上
      * */ 
-    function loadPolicyConf() {
+    function loadPolicy() {
         $.ajax({
-            url: "http://" + ipaddress + ":" + restport + "/wm/trafficmonitor/policyconf/list/json",
+            url: "http://" + ipaddress + ":" + restport + "/wm/trafficmonitor/policy/list/json",
             success: function (data) {
 				$('#portSpeedThreshold').html(data["port_speed_threshold"]);
 				$('#action').html(data["action"]);
@@ -382,7 +417,7 @@
  		$.ajax({
             type: "POST",
             dataType: 'json',
-            url: "http://" + ipaddress + ":" + restport + "/wm/trafficmonitor/policyconf/json",
+            url: "http://" + ipaddress + ":" + restport + "/wm/trafficmonitor/policy/conf/json",
             data: postData,
             success: function (data) {
                 if (data["status"] == "Policy updated") {
@@ -393,7 +428,7 @@
                         hide: true
                     });
                     
-					loadPolicyConf();
+					loadPolicy();
                 }
                 else {
 
@@ -410,6 +445,83 @@
             }
         });
 
+    }
+    
+    
+    /*
+    *	加载事件表格
+    **/
+    function loadEvents(){
+    	eventTable = $('#eventsTable').DataTable({
+    	responsive: true,
+            searching: false,
+            lengthChange: false,
+            scrollX: true,
+            paging: false,
+            order: [[0, 'asc']],
+            ajax: {
+                url: "http://" + ipaddress + ":" + restport + "/wm/trafficmonitor/events/json",
+                dataSrc: ''			// 对获得的服务器数据进行处理，转换成字符串等形式
+            },
+            columnDefs:[			// 列渲染
+            	{
+            		"targets": 1,
+                    "render": function (data, type, row) {
+						return data + " / " + row.source.port_no;
+                    }                  
+                },
+                {
+            		"targets": 2,
+                   	"visible": false    
+                },
+                {
+            		"targets": 3,
+                   	 "render": function (data, type, row) {
+                    	var description = "port_speed(" + row.description.port_speed + " Bps)";
+						description += " > ";
+						description += "threshold(" + row.description.port_speed_threshold + " Bps)";
+						description += "\n";
+						description += "input_speed: " + row.description.rx_speed + " Bps";
+						description += ", 	";
+						description += "output_speed: " + row.description.tx_speed + " Bps";
+						return description;
+                    }                    
+                },
+                {
+            		"targets": [4, 5, 6],
+                   	"visible": false    
+                },
+                {
+                	"targets": 7,
+                	"render": function(data, type, row){
+                		var system_action = data + ", " + row.system_action.action_duration + "s";
+                		if(data == "limit"){
+                			system_action += "\n" + "rate_limit: " + row.system_action.rate_limit + " Bps";
+                		}
+                		return system_action;
+                	}
+                },
+                {
+                	"targets": [8, 9],
+                	"visible": false
+                }               
+            ],
+            columns: [			// 列数据
+                {data: 'time'},
+                {data: 'source.dpid'},
+                {data: 'source.port_no'},
+                {data: 'description.port_speed_threshold'},
+                {data: 'description.port_speed'},
+                {data: 'description.rx_speed'},
+                {data: 'description.tx_speed'},
+                {data: 'system_action.action'},
+                {data: 'system_action.action_duration'},
+                {data: 'system_action.rate_limit'}     
+            ]
+
+    	});
+    
+    
     }
 
 </script>
