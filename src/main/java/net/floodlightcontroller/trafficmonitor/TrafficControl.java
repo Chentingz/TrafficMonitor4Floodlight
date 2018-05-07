@@ -10,57 +10,65 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.Map.Entry;
 
+import org.python.antlr.PythonParser.return_stmt_return;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import net.floodlightcontroller.core.IOFSwitch;
 import net.floodlightcontroller.core.internal.IOFSwitchService;
 import net.floodlightcontroller.core.types.NodePortTuple;
+import net.floodlightcontroller.linkdiscovery.Link;
 
 
 
 public class TrafficControl {
 	private static final Logger logger = LoggerFactory.getLogger(TrafficControl.class);
 	private static final String URL_ADD_DELETE_FLOW = "http://localhost:8080/wm/staticentrypusher/json";
-	private static final int hardTimeout = 60;		// 时间单位s
 	private static int countFlow = 0;
 	
-	public static void Control(IOFSwitchService switchService, HashSet<NodePortTuple> abnormalTrafficSet, HashMap<NodePortTuple, Date> addFlowEntryHistoryMap){
-		Iterator<NodePortTuple> iterator = abnormalTrafficSet.iterator();
-		
-		while(iterator.hasNext() ){
-			NodePortTuple npt = (NodePortTuple)iterator.next();
+	public static void Control(IOFSwitchService switchService, HashMap<NodePortTuple, SwitchPortStatistics> abnormalTraffic, HashMap<NodePortTuple, Date> addFlowEntryHistory, Policy policy, LinkedList<Event> events){		
+		for(Entry<NodePortTuple, SwitchPortStatistics> e : abnormalTraffic.entrySet()){
+			NodePortTuple npt = e.getKey();
+			SwitchPortStatistics sps = e.getValue();
 			IOFSwitch sw = switchService.getSwitch(npt.getNodeId());
-			
-			/* 没有下发过流表项，下发流表项丢弃 */
-			if(!addFlowEntryHistoryMap.containsKey(npt)){	
-				addFlowEntryHistoryMap.put(npt,new Date());
-				dropPacket(sw, npt.getPortId().getPortNumber(), hardTimeout, countFlow++);		
-			}
-			else{	 /* 已经下发过流表项，检测该流表项是否过期 */
-				Date currentTime = new Date();
-				long period = (currentTime.getTime() - addFlowEntryHistoryMap.get(npt).getTime()) / 1000;	// 换算成second
-				if(period > hardTimeout){
-					logger.info("flow {match:" + npt.getNodeId() + " / " + npt.getPortId() + ", action:drop} expired!");
-					addFlowEntryHistoryMap.remove(npt);
+				
+			if(!addFlowEntryHistory.containsKey(npt)){	/* 没有下发过流表项 */
+				addFlowEntryHistory.put(npt,new Date());
+				
+				switch(policy.getAction()){
+				case Policy.ACTION_NONE:
+					break;
+				case Policy.ACTION_DROP:
+					int hardTimeout = (int) policy.getActionDuration();
+					dropPacket(sw, npt.getPortId().getPortNumber(), hardTimeout, countFlow++);
+					events.add(new Event(sps, policy));
+					break;
+				case Policy.ACTION_LIMIT:
+					break;
 				}
-				/*
-				for(Entry<NodePortTuple, Date> e : flowHistory.entrySet()){
-					long period = (currentTime.getTime() - e.getValue().getTime()) / 1000;	// 换算成second
-					if(period > hardTimeout){
-						logger.info("flow {match:" + e.getKey().getNodeId() + " / " + e.getKey().getPortId() + ", action:drop} expired!");
-						flowHistory.remove(e.getKey());
+
+				
+			}
+			else{	 /* 已经下发过流表项，检测该流表项是否过期 */				
+				switch(policy.getAction()){
+				case Policy.ACTION_DROP:
+					Date currentTime = new Date();
+					long period = (currentTime.getTime() - addFlowEntryHistory.get(npt).getTime()) / 1000;	// 换算成second
+					if(period > policy.getActionDuration()){
+						logger.info("flow {match:" + npt.getNodeId() + " / " + npt.getPortId() + ", action:drop} expired!");
+						addFlowEntryHistory.remove(npt);
 					}
-				}*/
+				}
 				
 			}
 		}
 		countFlow = 0;
 	}
 	
-	public static void dropPacket(IOFSwitch sw, int inPortNumber, int hardTimeoutint, int countFLow){
+	public static void dropPacket(IOFSwitch sw, int inPortNumber, int hardTimeout, int countFLow){
 		//解析传进来的属性
 		HashMap<String, String> flow1 = new HashMap<String, String>();
 		flow1.put("switch", sw.getId().toString());
@@ -137,8 +145,6 @@ public class TrafficControl {
         logger.info(string);
         return string;
     } 
-	
-	
 	
 	
 	
