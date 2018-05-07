@@ -5,7 +5,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -72,8 +72,9 @@ public class TrafficMonitor implements IOFMessageListener, IFloodlightModule, IT
 	
 	private static HashMap<NodePortTuple, SwitchPortStatistics> prePortStatsBuffer;	// 用于缓存先前的交换机端口统计信息，在init（）中进行初始化	
 	private static HashMap<NodePortTuple, SwitchPortStatistics> portStatsBuffer;	// 用于缓存当前的交换机端口统计信息
-	private static HashSet<NodePortTuple> 						abnormalTrafficSet = new HashSet<NodePortTuple>();				// 异常流量集合
-	private static HashMap<NodePortTuple, Date> 				addFlowEntiesHistoryMap = new HashMap<NodePortTuple, Date>();	// 流表项添加记录，防止下发重复流表项
+	private static HashMap<NodePortTuple, SwitchPortStatistics> abnormalTraffic = new HashMap<NodePortTuple, SwitchPortStatistics>(); // 存储异常流量
+	private static HashMap<NodePortTuple, Date> 				addFlowEntriesHistory = new HashMap<NodePortTuple, Date>();	// 流表项添加记录，防止下发重复流表项
+	private static LinkedList<Event>							events = new LinkedList<Event>();								// 存储发生的事件
 	private boolean isFirstTime2CollectSwitchStatistics = true;
 	
 	/**
@@ -132,10 +133,10 @@ public class TrafficMonitor implements IOFMessageListener, IFloodlightModule, IT
 					logger.info("prePortStatsBuffer updated");
 					
 					/* 端口速率分析 */
-					abnormalTrafficSet.clear();
-					TrafficAnalyzer.Analysis(prePortStatsBuffer, abnormalTrafficSet);
-					if(!abnormalTrafficSet.isEmpty()){
-						TrafficControl.Control(switchService, abnormalTrafficSet, addFlowEntiesHistoryMap);
+					abnormalTraffic.clear();
+					TrafficAnalyzer.Analysis(prePortStatsBuffer, abnormalTraffic, policy);
+					if(!abnormalTraffic.isEmpty()){
+						TrafficControl.Control(switchService, abnormalTraffic, addFlowEntriesHistory, policy, events);
 					}
 					
 				}
@@ -480,53 +481,6 @@ public class TrafficMonitor implements IOFMessageListener, IFloodlightModule, IT
 		return prePortStatsBuffer.get(new NodePortTuple(dpid, port));
 	}
 
-	@Override
-	public U64 getPortSpeedThreshold() {
-		// TODO Auto-generated method stub
-		return portSpeedThreshold;
-	}
-
-	@Override
-	public String getAction() {
-		// TODO Auto-generated method stub
-		return action;
-	}
-
-	@Override
-	public long getActionDuration() {
-		// TODO Auto-generated method stub
-		return actionDuration;
-	}
-
-	@Override
-	public U64 getRateLimit() {
-		// TODO Auto-generated method stub
-		return rateLimit;
-	}
-
-	@Override
-	public U64 setPortSpeedThreshold(U64 portSpeedThreshold) {
-		// TODO Auto-generated method stub
-		return this.portSpeedThreshold = portSpeedThreshold;
-	}
-
-	@Override
-	public String setAction(String action) {
-		// TODO Auto-generated method stub
-		return this.action = action;
-	}
-
-	@Override
-	public long setActionDuration(long actionDuration) {
-		// TODO Auto-generated method stub
-		return this.actionDuration = actionDuration;
-	}
-
-	@Override
-	public U64 setRateLimit(U64 rateLimit) {
-		// TODO Auto-generated method stub
-		return this.rateLimit = rateLimit;
-	}
 
 	@Override
 	public Policy getPolicy() {
@@ -542,6 +496,12 @@ public class TrafficMonitor implements IOFMessageListener, IFloodlightModule, IT
 		policy.setActionDuration(actionDuration);
 		policy.setRateLimit(rateLimit);
 		
+	}
+
+	@Override
+	public LinkedList<Event> getEvents() {
+		// TODO Auto-generated method stub
+		return events;
 	}
 
 }
