@@ -1,6 +1,7 @@
 package net.floodlightcontroller.trafficmonitor;
 
 import java.util.HashMap;
+import java.util.LinkedList;
 
 import org.projectfloodlight.openflow.types.DatapathId;
 import org.projectfloodlight.openflow.types.OFPort;
@@ -23,16 +24,7 @@ public interface ITrafficMonitorService extends IFloodlightService {
 	// 设置策略
 	public void setPolicy(U64 portSpeedThreshold, String action, long actionDuration, U64 rateLimit);
 
-	// 获取配置参数
-	public U64 getPortSpeedThreshold();
-	public String getAction();
-	public long getActionDuration();
-	public U64 getRateLimit();
-	
-	// 设置配置参数
-	public U64 setPortSpeedThreshold(U64 portSpeedThreshold);
-	public String setAction(String action);
-	public long setActionDuration(long actionDuration);
-	public U64 setRateLimit(U64 rateLimit);
+	// 获取事件
+	public LinkedList<Event> getEvents();
 
 }
