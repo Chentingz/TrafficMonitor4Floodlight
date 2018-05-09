@@ -7,6 +7,7 @@
 [Does Open vSwitch support OpenFlow meters?](http://docs.openvswitch.org/en/latest/faq/qos/)  
 [OVS常用命令与使用总结](https://blog.csdn.net/rocson001/article/details/73163041)  
 [码农学ODL之流量限速实战](https://www.sdnlab.com/17972.html)  
+[OpenFlow Meter的坑](https://www.cnblogs.com/wpqwpq/p/7832650.html)  
 
 * **2018/5/7** 添加事件展示功能  
 
