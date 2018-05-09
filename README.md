@@ -2,6 +2,12 @@
 添加了流量监控模块的Floodlight控制器
 
 ## Log：
+* **2018/5/9** 查阅meter有关资料，将mininet中的Open vSwitch更新到 **2.9.0**。  
+`（目前Open vSwitch 2.8.0 以上版本才支持meter，且只在userspace datapath上实现，kernel datapath上未实现，也就是说添加meter只能在Open vSwitch上通过命令实现，无法通过控制器发meter_modification_message来实现。）`  
+[Does Open vSwitch support OpenFlow meters?](http://docs.openvswitch.org/en/latest/faq/qos/)  
+[OVS常用命令与使用总结](https://blog.csdn.net/rocson001/article/details/73163041)  
+[码农学ODL之流量限速实战](https://www.sdnlab.com/17972.html)  
+
 * **2018/5/7** 添加事件展示功能  
 
 ![TrafficMonitor-Events.png](https://github.com/Chentingz/TrafficMonitor4Floodlight/blob/master/img4ReadMe/TrafficMonitor-Events.png)  
