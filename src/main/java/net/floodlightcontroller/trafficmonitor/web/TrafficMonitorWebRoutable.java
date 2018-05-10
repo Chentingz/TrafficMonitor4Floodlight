@@ -1,7 +1,5 @@
 package net.floodlightcontroller.trafficmonitor.web;
 
-import java.util.HashSet;
-
 import org.restlet.Context;
 import org.restlet.Restlet;
 import org.restlet.routing.Router;
@@ -18,7 +16,7 @@ public class TrafficMonitorWebRoutable implements RestletRoutable {
 		/* 将url路径与处理方法绑定 */
 		router.attach("/portstats/{" + DPID_STR + "}/{" + PORT_STR + "}/json", PortStatsResource.class);
 		router.attach("/policy/conf/json", PolicyConfigResource.class);
-		router.attach("/policy/list/json", ListPolicyConfigResource.class);
+		router.attach("/policy/list/json", ListPolicyResource.class);
 		router.attach("/events/json", ListEventsResource.class);
 		return router;
 	}
