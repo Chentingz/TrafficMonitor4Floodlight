@@ -16,7 +16,6 @@ public class SwitchPortStatistics {
 	
 	private U64			rxSpeed;
 	private U64			txSpeed;
-	private U64			portSpeed;
 	private U64 		linkBandwidth; 
 	
 	private Date		updateTime;
@@ -34,7 +33,7 @@ public class SwitchPortStatistics {
 	public SwitchPortStatistics(){ 
 		dpid = DatapathId.NONE;
 		portNo = null;
-		rxSpeed = txSpeed = linkBandwidth = portSpeed = U64.ZERO;
+		rxSpeed = txSpeed = linkBandwidth  = U64.ZERO;
 		updateTime = new Date();
 		rxBytes = txBytes = U64.ZERO;
 		durationSec = durationNsec = 0;
@@ -166,14 +165,5 @@ public class SwitchPortStatistics {
 		
 		System.out.println(stats);		
 	}
-
-	public U64 getPortSpeed() {
-		return rxSpeed.add(txSpeed);
-	}
-
-	public void setPortSpeed(U64 portSpeed) {
-		this.portSpeed = portSpeed;
-	}
-	
 
 }
