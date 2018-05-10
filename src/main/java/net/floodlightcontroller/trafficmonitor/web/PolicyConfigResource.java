@@ -23,18 +23,13 @@ public class PolicyConfigResource extends ServerResource {
 		HashMap<String, String> jsonHashMap = jsonToHashMap(json);
 		
 		/* 取json字段，赋值给相应参数 */
-		U64 portSpeedThreshold = U64.of(Long.valueOf(jsonHashMap.get("port_speed_threshold")));
+		U64 portSpeedThreshold = U64.of(Long.valueOf(jsonHashMap.get("traffic_threshold")));
 		String action = jsonHashMap.get("action");
 		long actionDuration = Long.parseLong(jsonHashMap.get("action_duration"));
 		U64 rateLimit = U64.of(Long.valueOf(jsonHashMap.get("rate_limit")));
 
 
 		trafficMonitorService.setPolicy(portSpeedThreshold, action, actionDuration, rateLimit);
-//		trafficMonitorService.setPortSpeedThreshold(portSpeedThreshold);
-//		trafficMonitorService.setAction(action);
-//		trafficMonitorService.setActionDuration(actionDuration);
-//		trafficMonitorService.setPortSpeedThreshold(rateLimit);
-		
 		return "{\"status\":\"Policy updated\"}";
 	}
 	

@@ -17,7 +17,7 @@ public class PolicySerializer extends JsonSerializer<Policy> {
 			JsonProcessingException {
 		
 		jGen.writeStartObject();
-		jGen.writeStringField("port_speed_threshold", p.getPortSpeedThreshold().getBigInteger().toString());
+		jGen.writeStringField("traffic_threshold", p.getTrafficThreshold().getBigInteger().toString());
 		jGen.writeStringField("action", p.getAction());
 		jGen.writeStringField("action_duration", String.valueOf(p.getActionDuration()));
 		jGen.writeStringField("rate_limit", p.getRateLimit().getBigInteger().toString());

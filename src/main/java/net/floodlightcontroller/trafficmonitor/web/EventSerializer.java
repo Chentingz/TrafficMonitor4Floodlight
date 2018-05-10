@@ -24,8 +24,7 @@ public class EventSerializer extends JsonSerializer<Event> {
 			jGen.writeEndObject();
 		jGen.writeFieldName("description");	
 			jGen.writeStartObject();
-			jGen.writeStringField("port_speed_threshold", event.getPolicy().getPortSpeedThreshold().getBigInteger().toString());
-			jGen.writeStringField("port_speed", event.getPortSpeed().getBigInteger().toString());
+			jGen.writeStringField("traffic_threshold", event.getPolicy().getTrafficThreshold().getBigInteger().toString());
 			jGen.writeStringField("rx_speed", event.getRxSpeed().getBigInteger().toString());
 			jGen.writeStringField("tx_speed", event.getTxSpeed().getBigInteger().toString());
 			jGen.writeEndObject();

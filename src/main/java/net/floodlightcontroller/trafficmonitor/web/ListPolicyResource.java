@@ -10,7 +10,7 @@ import org.restlet.resource.ServerResource;
  * 
  *
  */
-public class ListPolicyConfigResource extends ServerResource {
+public class ListPolicyResource extends ServerResource {
 	@Get("json")
 	public Object list(){
 		ITrafficMonitorService trafficMonitorService = (ITrafficMonitorService) getContext().getAttributes().get(ITrafficMonitorService.class.getCanonicalName());

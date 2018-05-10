@@ -41,7 +41,6 @@ public class SwitchPortStatisticsSerializer extends JsonSerializer<SwitchPortSta
 				jGen.writeStartObject();
 				jGen.writeStringField("rx_speed(Bps)", sps.getRxSpeed().getBigInteger().toString());
 				jGen.writeStringField("tx_speed(Bps)", sps.getTxSpeed().getBigInteger().toString());
-				jGen.writeStringField("port_speed", sps.getPortSpeed().getBigInteger().toString());
 				jGen.writeStringField("update_time", DateFormat.getDateTimeInstance().format(sps.getUpdateTime()));
 				
 				jGen.writeStringField("rx_bytes", sps.getRxBytes().getBigInteger().toString());
