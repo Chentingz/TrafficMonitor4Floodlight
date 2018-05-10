@@ -1,7 +1,6 @@
 package net.floodlightcontroller.trafficmonitor;
 
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map.Entry;
 
 import net.floodlightcontroller.core.types.NodePortTuple;
@@ -15,21 +14,18 @@ public class TrafficAnalyzer {
 	private static final Logger logger = LoggerFactory.getLogger(TrafficAnalyzer.class);
 
 	public static void Analysis(HashMap<NodePortTuple, SwitchPortStatistics> portStats, HashMap<NodePortTuple, SwitchPortStatistics> abnormalTraffic, Policy policy){
-		U64 portSpeed = U64.ZERO;
-		U64 rxSpeed = U64.ZERO;
-		U64 txSpeed = U64.ZERO;
-		U64 portSpeedThreshold = policy.getPortSpeedThreshold();
-				
+		U64 rxSpeed = U64.ZERO, txSpeed = U64.ZERO;
+		U64 trafficThreshold = policy.getTrafficThreshold();
+		String print = "\n";		
 		/* 根据端口流量与阈值比较来判断是否为异常流量 */
 		for(Entry<NodePortTuple, SwitchPortStatistics> e : portStats.entrySet()){
-			rxSpeed = e.getValue().getRxSpeed();
-			txSpeed = e.getValue().getTxSpeed();
-			
-			portSpeed = rxSpeed.add(txSpeed);
-			logger.info("" + e.getKey().getNodeId() +" / " + e.getKey().getPortId() + " portSpeed: " + portSpeed.getBigInteger().toString());
-			if(portSpeed.compareTo(portSpeedThreshold) > 0){
+			rxSpeed = e.getValue().getRxSpeed();	/* 入方向流量  */
+			txSpeed = e.getValue().getRxSpeed();	/* 出方向流量  */
+			print += e.getKey().getNodeId() +" / " + e.getKey().getPortId() + " rxSpeed: " + rxSpeed.getBigInteger().toString() + " txSpeed: " + txSpeed.getBigInteger().toString() +"\n";
+			if(rxSpeed.compareTo(trafficThreshold) > 0 || txSpeed.compareTo(trafficThreshold) > 0){
 				abnormalTraffic.put(e.getKey(), e.getValue());
 			}
 		}
+		logger.info(print);
 	}
 }
