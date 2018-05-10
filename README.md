@@ -2,7 +2,18 @@
 添加了流量监控模块的Floodlight控制器
 
 ## Log：
-* **2018/5/6**  添加策略配置功能，可通过REST API配置、获取策略。添加流量分析和控制功能，实现端口流量超过阈值，根据配置策略实施异常流量控制（目前只实现流量丢弃，限速未实现）  
+* **2018/5/9** 查阅meter有关资料，将mininet中的Open vSwitch更新到 **2.9.0**。  
+`（目前Open vSwitch 2.8.0 以上版本才支持meter，且只在userspace datapath上实现，kernel datapath上未实现，也就是说添加meter只能在Open vSwitch上通过命令实现，无法通过控制器发meter_modification_message来实现。）`  
+[Does Open vSwitch support OpenFlow meters?](http://docs.openvswitch.org/en/latest/faq/qos/)  
+[OVS常用命令与使用总结](https://blog.csdn.net/rocson001/article/details/73163041)  
+[码农学ODL之流量限速实战](https://www.sdnlab.com/17972.html)  
+[OpenFlow Meter的坑](https://www.cnblogs.com/wpqwpq/p/7832650.html)  
+
+* **2018/5/7** 添加事件展示功能  
+
+![TrafficMonitor-Events.png](https://github.com/Chentingz/TrafficMonitor4Floodlight/blob/master/img4ReadMe/TrafficMonitor-Events.png)  
+
+* **2018/5/6** 添加策略配置功能，可通过REST API配置、获取策略。添加流量分析和控制功能，实现端口流量超过阈值，根据配置策略实施异常流量控制 **（目前只实现流量丢弃，限速未实现）**  
 
 ![TrafficMonitor-SwitchConnected.png](https://github.com/Chentingz/TrafficMonitor4Floodlight/blob/master/img4ReadMe/TrafficMonitor-SwitchConnected.png)  
 
@@ -35,7 +46,7 @@
 
 ~~4.*TrafficMonitor模块添加流量分析部分，监控进出端口流量大小，超出阈值，下发流表丢弃*~~  
 
-5.traffcMonitor.html添加事件表格，打印异常流量产生的位置（dpid + port）及时间  
+~~5.*traffcMonitor.html添加事件表格，打印异常流量产生的位置（dpid + port）及时间*~~  
 
 6.使用openflow协议的meter表，实现端口某个方向的限速
   
