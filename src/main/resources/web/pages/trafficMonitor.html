@@ -117,19 +117,19 @@
                             <table class="table table-hover" id="policyTable"
                                    width="100%">
                                 <tr>
-                                    <td><b>Port Speed Threshold</b></td>
-                                    <td>: <span id="portSpeedThreshold"></span></td>        
+                                    <td><b>Traffic Threshold(Bps)</b></td>
+                                    <td>: <span id="trafficThreshold"></span></td>        
                                 </tr>
                                 <tr>
                                     <td><b>Action</b></td>
                                     <td>: <span id="action"></span></td>        
                                 </tr>
                                 <tr>
-                                    <td><b>Action Duration</b></td>
+                                    <td><b>Action Duration(s)</b></td>
                                     <td>: <span id="actionDuration"></span></td>        
                                 </tr>
                                 <tr>
-                                    <td><b>Rate Limit</b></td>
+                                    <td><b>Rate Limit(Bps)</b></td>
                                     <td>: <span id="rateLimit"></span></td>        
                                 </tr>
                                 <tr>
@@ -161,7 +161,6 @@
 	                                	<th>Source</th> 
 	                                	<th>Source_port</th>	                              	
 	                                	<th>Description</th> 
-	                                	<th>Description_portSpeed</th> 
 	                                	<th>Description_rxSpeed</th>
 	                                	<th>Description_txSpeed</th>  
 	                                	<th>System Action</th>
@@ -197,14 +196,13 @@
                     <div class="modal-body">
                         <div class="form">
                             <div class="form-group">
-                                <label>Port Speed Threshold (Bps,Used to detect abnormal traffic)</label>
-                                <input class="form-control" type="text" id="inputPortSpeedThreshold" placeholder="0">
+                                <label>Traffic Threshold (Bps,Used to detect abnormal traffic)</label>
+                                <input class="form-control" type="text" id="inputTrafficThreshold" placeholder="0">
                             </div>
 
                             <div class="form-group">
                                 <label>Action</label>
                                 <select class="form-control"  id="selectAction" onchange="checkRateLimitSelected()">
-                                	<option value="none">none</option>
                                 	<option value="drop">drop</option>
                                 	<option value="limit" id="limit">limit</option>
                                 </select>
@@ -343,7 +341,7 @@
         $.ajax({
             url: "http://" + ipaddress + ":" + restport + "/wm/trafficmonitor/policy/list/json",
             success: function (data) {
-				$('#portSpeedThreshold').html(data["port_speed_threshold"]);
+				$('#trafficThreshold').html(data["traffic_threshold"]);
 				$('#action').html(data["action"]);
 				$('#actionDuration').html(data["action_duration"]);
 				$('#rateLimit').html(data["rate_limit"]);				
@@ -377,7 +375,7 @@
     
     /* 更新策略 */
     function updatePolicy(){
-    	var portSpeedThreshold = $("#inputPortSpeedThreshold").val();
+    	var trafficThreshold = $("#inputTrafficThreshold").val();
         var action = $("#selectAction").val();
         var actionDuration = $("#inputActionDuration").val();
         var rateLimit = "";
@@ -388,9 +386,9 @@
         /* 将数据组装成json格式 */
         var postData = "";
         
-        postData += '{"port_speed_threshold":';
-        if(portSpeedThreshold != "")
-        	postData += "\"" + portSpeedThreshold + "\",";
+        postData += '{"traffic_threshold":';
+        if(trafficThreshold != "")
+        	postData += "\"" + trafficThreshold + "\",";
         else
         	postData += '"0",';
         
@@ -477,22 +475,28 @@
                 {
             		"targets": 3,
                    	 "render": function (data, type, row) {
-                    	var description = "port_speed(" + row.description.port_speed + " Bps)";
-						description += " > ";
-						description += "threshold(" + row.description.port_speed_threshold + " Bps)";
-						description += "\n";
-						description += "input_speed: " + row.description.rx_speed + " Bps";
-						description += ", 	";
-						description += "output_speed: " + row.description.tx_speed + " Bps";
+                    	var description = "";
+                    	if(row.description.rx_speed > row.description.traffic_threshold){
+                    		description += "input_speed(" + row.description.rx_speed + " Bps)";
+                    		description += " > ";
+							description += "threshold(" + row.description.traffic_threshold + " Bps)";
+                    		description += " \n ";
+                    	}
+                    	if(row.description.tx_speed > row.description.traffic_threshold){
+                    		description += "output_speed(" + row.description.tx_speed + " Bps)";
+                    		description += " > ";
+							description += "threshold(" + row.description.traffic_threshold + " Bps)";
+                    		description += " \n ";
+                    	}					
 						return description;
                     }                    
                 },
                 {
-            		"targets": [4, 5, 6],
+            		"targets": [4, 5],
                    	"visible": false    
                 },
                 {
-                	"targets": 7,
+                	"targets": 6,
                 	"render": function(data, type, row){
                 		var system_action = data + ", " + row.system_action.action_duration + "s";
                 		if(data == "limit"){
@@ -502,7 +506,7 @@
                 	}
                 },
                 {
-                	"targets": [8, 9],
+                	"targets": [7, 8],
                 	"visible": false
                 }               
             ],
@@ -510,8 +514,7 @@
                 {data: 'time'},
                 {data: 'source.dpid'},
                 {data: 'source.port_no'},
-                {data: 'description.port_speed_threshold'},
-                {data: 'description.port_speed'},
+                {data: 'description.traffic_threshold'},
                 {data: 'description.rx_speed'},
                 {data: 'description.tx_speed'},
                 {data: 'system_action.action'},
