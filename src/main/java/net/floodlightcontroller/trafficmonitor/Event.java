@@ -13,7 +13,6 @@ import net.floodlightcontroller.trafficmonitor.web.EventSerializer;
 public class Event {
 	private Date 				time;			
 	private NodePortTuple 		source;			// 事件产生来源
-	private U64					portSpeed;		// 端口的流量
 	private U64					rxSpeed;		// 端口输入速率
 	private U64					txSpeed;		// 端口输出速率
 	private Policy				policy;			// 系统执行策略
@@ -21,13 +20,12 @@ public class Event {
 	public Event(){
 		time = new Date();
 		source = null;
-		portSpeed = rxSpeed = txSpeed = U64.ZERO;
+		rxSpeed = txSpeed = U64.ZERO;
 		policy = null;
 	}
 	public Event(SwitchPortStatistics sps, Policy policy){
 		time = new Date();
 		source = new NodePortTuple(sps.getDpid(), sps.getPortNo());
-		portSpeed = sps.getPortSpeed();
 		rxSpeed = sps.getRxSpeed();
 		txSpeed = sps.getTxSpeed();
 		this.policy = policy;
@@ -58,14 +56,6 @@ public class Event {
 		this.policy = policy;
 	}
 
-	public U64 getPortSpeed() {
-		return portSpeed;
-	}
-
-	public void setPortSpeed(U64 portSpeed) {
-		this.portSpeed = portSpeed;
-	}
-
 	public U64 getRxSpeed() {
 		return rxSpeed;
 	}
@@ -81,8 +71,6 @@ public class Event {
 	public void setTxSpeed(U64 txSpeed) {
 		this.txSpeed = txSpeed;
 	}
-
-	
 	
 	public String description(){
 		return "";
