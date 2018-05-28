@@ -22,6 +22,12 @@ public class Policy {
 		actionDuration = 30;
 		rateLimit = U64.ZERO;
 	}
+	public Policy(Policy policy){
+		this.trafficThreshold = policy.getTrafficThreshold();
+		this.action = policy.getAction();				
+		this.actionDuration = policy.getActionDuration();
+		this.rateLimit = policy.getRateLimit();
+	}
 	
 	public U64 getTrafficThreshold() {
 		return trafficThreshold;
