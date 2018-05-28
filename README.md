@@ -1,5 +1,5 @@
 # TrafficMonitor4Floodlight
-添加了流量监控模块的Floodlight控制器
+添加了流量监控模块的Floodlight控制器，主要实现交换机端口收发流量可视化，异常流量检测与控制。
 
 ## Log：
 * **2018/5/29**  
