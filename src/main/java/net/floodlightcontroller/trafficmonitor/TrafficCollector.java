@@ -15,6 +15,7 @@ import java.util.concurrent.TimeUnit;
 import net.floodlightcontroller.core.IOFSwitch;
 import net.floodlightcontroller.core.internal.IOFSwitchService;
 import net.floodlightcontroller.core.types.NodePortTuple;
+import net.floodlightcontroller.linkdiscovery.ILinkDiscoveryService;
 import net.floodlightcontroller.threadpool.IThreadPoolService;
 
 import org.projectfloodlight.openflow.protocol.OFFactories;
@@ -41,7 +42,7 @@ public class TrafficCollector {
 	
 	private  IOFSwitchService 				switchService;
 	private  IThreadPoolService 			threadPoolService;	// 线程池
-	
+	private  ILinkDiscoveryService			linkDiscoveryService;
 	public static long portStatsInterval = 10;					// 收集交换机端口统计量的周期,单位为秒
 
 	private static ScheduledFuture<?> portStatsCollector;		// 用于接收线程池的返回值，收集port_stats
@@ -115,7 +116,7 @@ public class TrafficCollector {
 					abnormalTraffic.clear();
 					TrafficAnalyzer.Analysis(prePortStatsBuffer, abnormalTraffic, policy);
 					if(!abnormalTraffic.isEmpty()){
-						TrafficController.executePolicy(switchService, abnormalTraffic, addFlowEntriesHistory, policy, events);
+						TrafficController.executePolicy(switchService, linkDiscoveryService, abnormalTraffic, addFlowEntriesHistory, policy, events);
 					}
 					
 				}
@@ -162,10 +163,11 @@ public class TrafficCollector {
 	/**
 	 * 	调用线程池服务，创建线程周期性执行PortStatsCollector类中的run()，portStatsInterval定义了执行周期
 	 */
-	public void startPortStatsCollection(IOFSwitchService switchService, IThreadPoolService threadPoolService, Policy policy, LinkedList<Event> events){		
+	public void startPortStatsCollection(IOFSwitchService switchService, IThreadPoolService threadPoolService, ILinkDiscoveryService linkDiscoveryService, Policy policy, LinkedList<Event> events){		
 		/* 从TrafficMonitor中拿到实例对相应的属性进行初始化  */
 		this.switchService = switchService;
 		this.threadPoolService = threadPoolService;
+		this.linkDiscoveryService = linkDiscoveryService;
 		this.policy = policy;
 		this.events = events;
 		
