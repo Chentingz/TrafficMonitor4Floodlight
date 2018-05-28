@@ -4,24 +4,19 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedList;
-
 import java.util.Map;
 
 import org.projectfloodlight.openflow.protocol.OFMessage;
-
 import org.projectfloodlight.openflow.protocol.OFType;
-
 import org.projectfloodlight.openflow.types.DatapathId;
-
 import org.projectfloodlight.openflow.types.OFPort;
-
 import org.projectfloodlight.openflow.types.U64;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 
-import net.floodlightcontroller.core.FloodlightContext;
 
+import net.floodlightcontroller.core.FloodlightContext;
 import net.floodlightcontroller.core.IOFMessageListener;
 import net.floodlightcontroller.core.IOFSwitch;
 import net.floodlightcontroller.core.internal.IOFSwitchService;
@@ -30,6 +25,7 @@ import net.floodlightcontroller.core.module.FloodlightModuleException;
 import net.floodlightcontroller.core.module.IFloodlightModule;
 import net.floodlightcontroller.core.module.IFloodlightService;
 import net.floodlightcontroller.core.types.NodePortTuple;
+import net.floodlightcontroller.linkdiscovery.ILinkDiscoveryService;
 import net.floodlightcontroller.restserver.IRestApiService;
 import net.floodlightcontroller.threadpool.IThreadPoolService;
 import net.floodlightcontroller.trafficmonitor.web.TrafficMonitorWebRoutable;
@@ -43,6 +39,7 @@ public class TrafficMonitor implements IOFMessageListener, IFloodlightModule, IT
 	private IOFSwitchService 			switchService;
 	private IThreadPoolService 			threadPoolService;		// 线程池
 	private IRestApiService				restApiService;
+	private ILinkDiscoveryService 		linkDiscoveryService;
 	
 	private static Policy 				policy = new Policy();			   // 默认执行丢弃，时间30s
 	private static LinkedList<Event>	events = new LinkedList<Event>();  // 存储发生的事件（记录系统处理异常流量的时间及动作）
@@ -107,6 +104,7 @@ public class TrafficMonitor implements IOFMessageListener, IFloodlightModule, IT
 			    l.add(IOFSwitchService.class);
 			    l.add(IThreadPoolService.class);
 			    l.add(IRestApiService.class);
+			    l.add(ILinkDiscoveryService.class);
 			    return l;
 	}
 
@@ -120,6 +118,7 @@ public class TrafficMonitor implements IOFMessageListener, IFloodlightModule, IT
 		switchService = context.getServiceImpl(IOFSwitchService.class);
 		threadPoolService = context.getServiceImpl(IThreadPoolService.class);
 		restApiService = context.getServiceImpl(IRestApiService.class);	
+		linkDiscoveryService = context.getServiceImpl(ILinkDiscoveryService.class);
 	}
 
 
@@ -132,7 +131,7 @@ public class TrafficMonitor implements IOFMessageListener, IFloodlightModule, IT
 		restApiService.addRestletRoutable(new TrafficMonitorWebRoutable());
 		
 		/* 收集交换机端口统计信息并计算port_speed */
-		trafficCollector.startPortStatsCollection(switchService, threadPoolService, policy, events);
+		trafficCollector.startPortStatsCollection(switchService, threadPoolService, linkDiscoveryService, policy, events);
 		
 	}
 	
