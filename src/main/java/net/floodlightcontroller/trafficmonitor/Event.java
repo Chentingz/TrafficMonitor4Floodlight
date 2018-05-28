@@ -26,9 +26,9 @@ public class Event {
 	public Event(SwitchPortStatistics sps, Policy policy){
 		time = new Date();
 		source = new NodePortTuple(sps.getDpid(), sps.getPortNo());
-		rxSpeed = sps.getRxSpeed();
-		txSpeed = sps.getTxSpeed();
-		this.policy = policy;
+		rxSpeed = U64.of(sps.getRxSpeed().getValue());
+		txSpeed = U64.of(sps.getTxSpeed().getValue());
+		this.policy = new Policy(policy);
 	}
 	
 	
