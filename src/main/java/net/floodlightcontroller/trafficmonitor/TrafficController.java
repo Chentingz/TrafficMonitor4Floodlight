@@ -13,6 +13,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
@@ -24,47 +25,62 @@ import org.projectfloodlight.openflow.protocol.OFMeterModCommand;
 import org.projectfloodlight.openflow.protocol.OFVersion;
 import org.projectfloodlight.openflow.protocol.meterband.OFMeterBand;
 import org.projectfloodlight.openflow.protocol.meterband.OFMeterBandDrop;
+import org.projectfloodlight.openflow.types.DatapathId;
+import org.projectfloodlight.openflow.types.OFPort;
 import org.projectfloodlight.openflow.types.U64;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import net.floodlightcontroller.core.IOFSwitch;
 import net.floodlightcontroller.core.internal.IOFSwitchService;
 import net.floodlightcontroller.core.types.NodePortTuple;
+import net.floodlightcontroller.linkdiscovery.ILinkDiscoveryService;
+import net.floodlightcontroller.linkdiscovery.Link;
 
 public class TrafficController {
 	private static final Logger logger = LoggerFactory.getLogger(TrafficController.class);
 	private static final String URL_ADD_DELETE_FLOW = "http://localhost:8080/wm/staticentrypusher/json";
+	private static final String URL_TOPO_LINKS = "http://localhost:8080/wm/topology/links/json";
 	private static int countFlow = 0;
 	
-	public static void executePolicy(IOFSwitchService switchService, HashMap<NodePortTuple, SwitchPortStatistics> abnormalTraffic, HashMap<NodePortTuple, Date> addFlowEntryHistory, Policy policy, LinkedList<Event> events){		
+	public static void executePolicy(IOFSwitchService switchService, ILinkDiscoveryService linkDiscoveryService, HashMap<NodePortTuple, SwitchPortStatistics> abnormalTraffic, HashMap<NodePortTuple, Date> addFlowEntryHistory, Policy policy, LinkedList<Event> events){		
 		for(Entry<NodePortTuple, SwitchPortStatistics> e : abnormalTraffic.entrySet()){
 			NodePortTuple npt = e.getKey();
 			SwitchPortStatistics sps = e.getValue();
 			IOFSwitch sw = switchService.getSwitch(npt.getNodeId());
-				
+
 			logger.info("ready to enter if");
 			if(addFlowEntryHistory.isEmpty() || !addFlowEntryHistory.containsKey(npt)){	/* 下发历史为空 或者 没有下发过该流表项 */
-				addFlowEntryHistory.put(npt, new Date());
+
 				/* 根据配置策略执行系统动作 */
 				switch(policy.getAction()){
 				case Policy.ACTION_DROP:
-					int hardTimeout = (int) policy.getActionDuration();
-					dropPacket(sw, npt.getPortId().getPortNumber(), hardTimeout, countFlow++);					
-					events.add(new Event(sps, policy));		/* 添加异常流量发生事件 */
+					/* 如果出现异常的端口所连对端为终端主机，则下发流表  */
+					if(!isPortConnectedToSwitch(sw.getId(), npt.getPortId(), linkDiscoveryService)){
+						int hardTimeout = (int) policy.getActionDuration();
+						dropPacket(sw, npt.getPortId().getPortNumber(), hardTimeout, countFlow++);					
+						events.add(new Event(sps, policy));		/* 添加异常流量发生事件 */
+						addFlowEntryHistory.put(npt, new Date());
+					}
 					break;
 					
 				case Policy.ACTION_LIMIT:
 					logger.info("enter case ACTION_LIMIT");
-					/* 下发meter，下发之前检查meter表是否存在该meter，有则更新，无则添加（OpenvSwitch目前暂不支持meter操作，故该功能无法实现） */
-					long meterId = 0, burstSize = 0;		
-					meterId = addMeter(sw, policy.getRateLimit(), burstSize);
-					logger.info("add Meter done");
-					// 下发流表项绑定meterId
-					int hardTimeout1 = (int) policy.getActionDuration();
-					rateLimit(sw, npt.getPortId().getPortNumber(), hardTimeout1, meterId, countFlow++);
-					logger.info("limit Packet done");
-					events.add(new Event(sps, policy));
+					/* 如果出现异常的端口所连对端为终端主机，则下发流表  */
+					if(!isPortConnectedToSwitch(sw.getId(), npt.getPortId(), linkDiscoveryService)){
+						/* 下发meter，下发之前检查meter表是否存在该meter，有则更新，无则添加（OpenvSwitch目前暂不支持meter操作，故该功能无法实现） */
+						long meterId = 0, burstSize = 0;		
+						meterId = addMeter(sw, policy.getRateLimit(), burstSize);
+						logger.info("add Meter done");
+						// 下发流表项绑定meterId
+						int hardTimeout1 = (int) policy.getActionDuration();
+						rateLimit(sw, npt.getPortId().getPortNumber(), hardTimeout1, meterId, countFlow++);
+						logger.info("limit Packet done");
+						events.add(new Event(sps, policy));
+						addFlowEntryHistory.put(npt, new Date());
+					}
 					break;
 				
 				default:
@@ -243,4 +259,23 @@ public class TrafficController {
 		}
 	}
 
+	/**
+	 * 检查交换机sw端口相连的是否为交换机
+	 * @return
+	 */
+	private static boolean isPortConnectedToSwitch(DatapathId dpid, OFPort port, ILinkDiscoveryService linkDiscoveryService){
+		boolean result = false;
+		
+		Map linksMap = linkDiscoveryService.getLinks();	/* 获取交换机之间的链路 */
+		Set keys = linksMap.keySet();
+		Iterator it = keys.iterator();
+		while(it.hasNext()){
+			Link link = (Link)it.next();
+			/* 检查该交换机链路中是否含有dpid和portNumber*/
+			result = (link.getSrc().equals(dpid) && link.getSrcPort().equals(port)) || (link.getDst().equals(dpid) && link.getDstPort().equals(port) )? true : false;
+		}
+		return result;
+	}
 }
+
+
